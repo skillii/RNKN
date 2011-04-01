@@ -38,6 +38,7 @@ import org.iaik.net.Network;
 import org.iaik.net.StackParameters;
 import org.iaik.net.datatypes.interfaces.ARPTable;
 import org.iaik.net.exceptions.NetworkException;
+import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.factories.LinkLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
 import org.iaik.net.interfaces.PhysicalSender;
@@ -100,7 +101,6 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		sender = LinkLayerFactory.getInstance().getSender();
 
 		while (running) {
-
 			Packet receivedPacket = receiveBuffer.getNextPacket();
 
 			if (receivedPacket instanceof Packet) {
@@ -308,8 +308,24 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *            The received ARP request.
 	 */
 	public void processARP(ARPPacket packet) {
-	}
+		
+		System.out.println("Begin of process ARP method\n");
+		Properties pts = this.getProperties();
+	
 
+		ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
+					                                pts.getProperty("mac-address") ,
+                                                    pts.getProperty("ip-address"), 
+                                                    packet.getSenderHardwareAddress(), 
+                                                    packet.getSenderProtocolAddress());
+
+	    System.out.println("ARP REPLY SENT\n");
+	    
+	    this.send(reply);
+	
+		
+		
+	}
 	/**
 	 * Processes an received IP packet. If the IP packet contains an ICMP, IGMP
 	 * or OSPF packet they are processed directly in this function. A response

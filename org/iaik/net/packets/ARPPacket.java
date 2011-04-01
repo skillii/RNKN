@@ -87,10 +87,45 @@ public class ARPPacket implements Packet {
 
 	public ARPPacket(EthernetPacket packet) throws PacketParsingException {
 		log = LogFactory.getLog(this.getClass());
-	}
 
-	public static ARPPacket createARPPacket(short oper, String sha, String spa, String tha, String tpa) {
-		return null;
+
+	    
+	    byte[] arp_pack = packet.getPayload();
+	    System.out.println(arp_pack.length);
+	    this.htype = NetUtils.bytesToShort(NetUtils.getFromByteArray(arp_pack, 0, 2));
+	    this.ptype = NetUtils.bytesToShort(NetUtils.getFromByteArray(arp_pack, 2, 2));
+	    this.hlen = arp_pack[4];
+	    this.plen = arp_pack[5];
+	    this.oper = NetUtils.bytesToShort(NetUtils.getFromByteArray(arp_pack, 6, 2));
+	    this.sha  = packet.getSourceAddress();
+	    this.spa  = NetUtils.toIPAddress(NetUtils.getFromByteArray(arp_pack, 14, 4), true);
+	    this.tha  = packet.getDestinationAddress();
+	    this.tpa  = NetUtils.toIPAddress(NetUtils.getFromByteArray(arp_pack, 24, 4),true);
+	    
+	    log.debug(this.getInfo());
+	    
+	  }
+
+	public ARPPacket()
+	{
+        this.log = LogFactory.getLog(this.getClass());
+	}
+	public static ARPPacket createARPPacket(short oper, String sha, String spa, String tha, String tpa)
+	{
+		ARPPacket new_p = new ARPPacket();
+		
+		new_p.oper = oper;
+		new_p.sha = sha;
+		new_p.spa = spa;
+		new_p.tha = tha;
+		new_p.tpa = tpa;
+		new_p.hlen = new_p.HLEN;
+		new_p.plen = new_p.PLEN;
+		new_p.htype = new_p.HTYPE_ETHERNET;
+		new_p.ptype = new_p.PTYPE_IP;
+		new_p.timeout = 45000;
+		
+		return new_p;
 	}
 
 	public static ARPPacket createARPPacket(EthernetPacket packet) throws PacketParsingException {
@@ -178,7 +213,22 @@ public class ARPPacket implements Packet {
 	}
 
 	public byte[] getPacket() {
-		return null;
+       byte[] packet = new byte[28]; 
+       
+       NetUtils.insertData(packet, NetUtils.shortToBytes(this.htype), 0);
+       NetUtils.insertData(packet, NetUtils.shortToBytes(this.ptype), 2);
+       byte[] p1 = new byte[1];
+       p1[0] = this.hlen;
+       NetUtils.insertData(packet,p1, 4);
+       p1[0] = this.plen;
+       NetUtils.insertData(packet,p1, 5);
+       NetUtils.insertData(packet, NetUtils.shortToBytes(this.oper), 6);
+       NetUtils.insertData(packet, NetUtils.addressToBytes(this.sha, ":"), 8);
+       NetUtils.insertData(packet, NetUtils.addressToBytes(this.spa, "."), 14);
+       NetUtils.insertData(packet, NetUtils.addressToBytes(this.tha, ":"), 18);
+       NetUtils.insertData(packet, NetUtils.addressToBytes(this.tpa, "."), 24);
+       
+       return packet;
 	}
 
 	public EthernetPacket getContainedIn() {
