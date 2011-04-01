@@ -776,4 +776,21 @@ public class NetUtils {
 		}
 		return data;
 	}
+	
+	public static short calcIPChecksum(byte[] data, int offset, int length)
+	{
+		int sum = 0;
+
+		
+		for(int i = offset; i < length && i < data.length; i++)
+		{
+			sum += data[i];
+			if((sum&(1<<16)) != 0)	//overflow
+			{
+				sum = (sum^(1<<16));	//add overflow to LSB
+				sum++;
+			}
+		}
+		return (short)~sum;
+	}
 }
