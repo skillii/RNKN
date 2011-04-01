@@ -30,10 +30,14 @@
 
 package org.iaik.net.packets;
 
+import java.util.ArrayList;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.utils.NetUtils;
+
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 /**
  * 
@@ -123,16 +127,44 @@ public class ICMPPacket implements Packet {
 	private long timeout = 0;
 
 	private Log log;
+	
+	private byte[] payload;
 
 	private ICMPPacket(byte[] packet) throws PacketParsingException {
 		log = LogFactory.getLog(this.getClass());
+		
+		final int typeOffset = 0;
+		final int codeOffset = 1;
+		final int checkSumOffset = 2;
+		final int identifierOffset = 4;
+		final int sequenceNumberOffset = 6;
+		final int payloadOffset = 8;
+		
+
+		if(packet.length - payloadOffset < 0)
+			throw new PacketParsingException("packet too small???");
+		
+		type = packet[typeOffset];
+		code = packet[codeOffset];
+		identifier = NetUtils.bytesToShort(packet, identifierOffset);
+		sequenceNumber = NetUtils.bytesToShort(packet, sequenceNumberOffset);
+		checksum = NetUtils.bytesToShort(packet, checkSumOffset);
+		
+		
+		payload = new byte[packet.length - payloadOffset];
+		System.arraycopy(packet, payloadOffset, payload, 0, packet.length - payloadOffset);
 	}
 
 	private ICMPPacket(byte type, byte code, short identifier, short sequenceNumber, byte[] payload) {
+		this.type = type;
+		this.code = code;
+		this.identifier = identifier;
+		this.sequenceNumber = sequenceNumber;
+		this.payload = payload;
 	}
 
 	public static ICMPPacket createICMPPacket(IPPacket packet) throws PacketParsingException {
-		return null;
+		return new ICMPPacket(packet.getPayload());
 	}
 
 	public static ICMPPacket createICMPPacket(byte type, byte code, short identifier, short sequenceNumber, byte[] payload) {
@@ -140,7 +172,8 @@ public class ICMPPacket implements Packet {
 	}
 
 	public static ICMPPacket createICMPPacket(byte type, short sequenceNumber) {
-		return null;
+		//TODO: code, identifier?
+		return new ICMPPacket(type, (byte)0, (short)0, sequenceNumber, DEFAULT_PAYLOAD);
 	}
 
 	public short getChecksum() {
@@ -172,7 +205,28 @@ public class ICMPPacket implements Packet {
 	}
 
 	public byte[] getPacket() {
-		return null;
+		final int typeOffset = 0;
+		final int codeOffset = 1;
+		final int checkSumOffset = 2;
+		final int identifierOffset = 4;
+		final int sequenceNumberOffset = 6;
+		final int payloadOffset = 8;
+		
+		byte[] pkg = new byte[payload.length + 8];
+		
+		pkg[typeOffset] = type;
+		pkg[codeOffset] = code;
+		
+		pkg[checkSumOffset] = 0;
+		pkg[checkSumOffset+1] = 0;
+		
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(identifier), identifierOffset);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(sequenceNumber), sequenceNumberOffset);
+		NetUtils.insertData(pkg, payload, payloadOffset);
+		
+		//TODO: checksum calculation
+		
+		return pkg;
 	}
 
 	public String getInfo() {
