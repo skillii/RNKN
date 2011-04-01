@@ -36,7 +36,6 @@ import java.util.Properties;
 
 import org.iaik.net.Network;
 import org.iaik.net.exceptions.NetworkException;
-import org.iaik.net.layers.JPcapPhysicalSender;
 
 /**
  * Tests the network capturing capabilities using the basic templates of his
