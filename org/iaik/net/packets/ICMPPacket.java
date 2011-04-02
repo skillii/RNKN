@@ -130,6 +130,10 @@ public class ICMPPacket implements Packet {
 	
 	private byte[] payload;
 
+	public byte[] getPayload() {
+		return payload;
+	}
+
 	private ICMPPacket(byte[] packet) throws PacketParsingException {
 		log = LogFactory.getLog(this.getClass());
 		
@@ -168,7 +172,7 @@ public class ICMPPacket implements Packet {
 	}
 
 	public static ICMPPacket createICMPPacket(byte type, byte code, short identifier, short sequenceNumber, byte[] payload) {
-		return null;
+		return new ICMPPacket(type, code, identifier, sequenceNumber, payload);
 	}
 
 	public static ICMPPacket createICMPPacket(byte type, short sequenceNumber) {
@@ -224,7 +228,9 @@ public class ICMPPacket implements Packet {
 		NetUtils.insertData(pkg, NetUtils.shortToBytes(sequenceNumber), sequenceNumberOffset);
 		NetUtils.insertData(pkg, payload, payloadOffset);
 		
-		//TODO: checksum calculation
+		short sum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(sum), checkSumOffset);
+		
 		
 		return pkg;
 	}

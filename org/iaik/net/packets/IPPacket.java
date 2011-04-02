@@ -589,10 +589,12 @@ public class IPPacket implements Packet {
 			throw new PacketParsingException("Header is too short!");
 
 	
+		ihl = (byte) (header[ihlOffset] & 0x0F);
 		version =  (byte) (header[versionOffset] >> 4);
 		tos = header[tosOffset];
 		identification = header[identificationOffset];
-		flags = (byte)(header[flagsOffset]>>4);
+		length = NetUtils.bytesToShort(header, totalLenOffset);
+		flags = (byte)(header[flagsOffset]>>5);
 		ttl = header[ttlOffset];
 		protocol = header[protocolOffset];
 		offset = (short)((header[offsetOffset] & 0x0F) << 8 | header[offsetOffset+1]);
@@ -733,7 +735,7 @@ public class IPPacket implements Packet {
 		pkg[tosOffset] = tos;
 		NetUtils.insertData(pkg, NetUtils.shortToBytes((short)pkg.length), totalLenOffset);		
 		NetUtils.insertData(pkg, NetUtils.shortToBytes(identification), identificationOffset);
-		pkg[flagsOffset] = (byte)((flags << 4));
+		pkg[flagsOffset] = (byte)((flags << 5));
 		pkg[offsetOffset] = (byte)(pkg[offsetOffset] | offset >> 8);
 		pkg[offsetOffset + 1] = (byte)(offset & 0xff);
 		
@@ -744,11 +746,23 @@ public class IPPacket implements Packet {
 		NetUtils.insertData(pkg, NetUtils.addressToBytes(sourceAddress, "."), SourceOffset);
 		NetUtils.insertData(pkg, NetUtils.addressToBytes(destinationAddress, "."), destinationOffset);
 		
-		System.arraycopy(pkg, 20, payload, 0, payload.length);
+		System.arraycopy(payload, 0, pkg, 20, payload.length);
 		
 		short sum = NetUtils.calcIPChecksum(pkg, 0, 20);
+
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(sum), checksumOffset);
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes((byte)(0xFFFF - sum)), checksumOffset);
+		sum = NetUtils.calcIPChecksum(pkg, 0, 20);
+		
+		
+		System.out.println("sending following package:");
+		EthernetPacket ether = EthernetPacket.createEthernetPacket((short)0, "08:00:27:27:6F:34", "08:00:27:27:6F:34", pkg);
+		try {
+			System.out.println(createIPPacket(ether).getInfo());
+		} catch (PacketParsingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		return pkg;		
 	}

@@ -782,15 +782,18 @@ public class NetUtils {
 		int sum = 0;
 
 		
-		for(int i = offset; i < length && i < data.length; i++)
+		for(int i = offset; i < length-1 && i < data.length-1; i+=2)
 		{
-			sum += data[i];
-			if((sum&(1<<16)) != 0)	//overflow
-			{
-				sum = (sum^(1<<16));	//add overflow to LSB
-				sum++;
-			}
+			int word = (int)(toInt(data[i])<<8 | toInt(data[i+1]));
+			
+			sum += word;
 		}
-		return (short)~sum;
+		
+		while(sum>>16 != 0)
+		{
+			sum = (int)(sum & 0xFFFF) + ((int)sum>>16);
+		}
+		
+		return (short)((~sum) & 0xFFFF);
 	}
 }

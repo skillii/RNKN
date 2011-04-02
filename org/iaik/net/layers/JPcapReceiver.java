@@ -148,7 +148,8 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 					// TODO: Hack to circumvent double reception of packets from
 					// within a VMWare.
 
-					if (prevDst != NetUtils.ipStringToInt(ip.getDestinationAddress())
+					//TODO: hack?? works for me without this hack!
+					if (true || prevDst != NetUtils.ipStringToInt(ip.getDestinationAddress())
 							|| prevSrc != NetUtils.ipStringToInt(ip.getSourceAddress()) || prevChecksum != ip.getChecksum()) {
 						// Store the values locally to use it for comparison
 						// later.

@@ -361,7 +361,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			switch(icmp.getType())
 			{
 				case ICMPPacket.ECHO_REQUEST:
-					ICMPPacket icmpreply = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REPLY, (short)1);
+					ICMPPacket icmpreply = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REPLY, (byte)0, icmp.getIdentifier(), icmp.getSequenceNumber(), icmp.getPayload());
 					IPPacket ipreply = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, identification, packet.getDestinationAddress(), packet.getSourceAddress(), icmpreply.getPacket());
 					send(ipreply);
 					break;
