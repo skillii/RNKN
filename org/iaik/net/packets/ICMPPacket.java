@@ -129,6 +129,14 @@ public class ICMPPacket implements Packet {
 	private Log log;
 	
 	private byte[] payload;
+	
+	private boolean chkSumValid;
+
+	
+	public boolean isValid()
+	{
+		return chkSumValid;
+	}
 
 	public byte[] getPayload() {
 		return payload;
@@ -157,6 +165,15 @@ public class ICMPPacket implements Packet {
 		
 		payload = new byte[packet.length - payloadOffset];
 		System.arraycopy(packet, payloadOffset, payload, 0, packet.length - payloadOffset);
+		
+		short sum = NetUtils.calcIPChecksum(packet, 0, packet.length);
+		
+		if(sum == 0)
+			chkSumValid = true;
+		else
+			chkSumValid = false;
+		
+		System.out.println("ICMP chksum:" + NetUtils.toHexString(sum));
 	}
 
 	private ICMPPacket(byte type, byte code, short identifier, short sequenceNumber, byte[] payload) {
@@ -165,6 +182,7 @@ public class ICMPPacket implements Packet {
 		this.identifier = identifier;
 		this.sequenceNumber = sequenceNumber;
 		this.payload = payload;
+		this.chkSumValid = true;
 	}
 
 	public static ICMPPacket createICMPPacket(IPPacket packet) throws PacketParsingException {

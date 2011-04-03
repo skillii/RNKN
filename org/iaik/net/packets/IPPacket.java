@@ -564,6 +564,8 @@ public class IPPacket implements Packet {
 	private long timeout = 0;
 
 	private Log log;
+	
+	private boolean chkSumValid;
 
 	private IPPacket(EthernetPacket packet) throws PacketParsingException {
 		log = LogFactory.getLog(this.getClass());
@@ -581,6 +583,7 @@ public class IPPacket implements Packet {
 		this.sourceAddress = sourceAddress;
 		this.destinationAddress = destinationAddress;
 		this.payload = payload;
+		chkSumValid = true;
 	}
 
 	private IPPacket(byte[] header, byte[] payload) throws PacketParsingException {
@@ -619,8 +622,11 @@ public class IPPacket implements Packet {
 		
 		short sum = NetUtils.calcIPChecksum(header, 0, 20);
 		
-		System.out.println("sum:" + sum);
-		
+		if(sum == 0)
+			chkSumValid = true;
+		else
+			chkSumValid = false;
+	
 		this.payload = payload;
 	}
 
@@ -723,17 +729,12 @@ public class IPPacket implements Packet {
 	}
 
 	public byte[] getHeader() {
-		return null;
-	}
-
-	public byte[] getPacket() {
-		byte[] pkg = new byte[20 + payload.length];
+		byte[] pkg = new byte[20];
 		
-	
 		pkg[versionOffset] = (byte)(version << 4);
 		pkg[ihlOffset] |= (byte)(20/4);
 		pkg[tosOffset] = tos;
-		NetUtils.insertData(pkg, NetUtils.shortToBytes((short)pkg.length), totalLenOffset);		
+		NetUtils.insertData(pkg, NetUtils.shortToBytes((short)(pkg.length + payload.length)), totalLenOffset);		
 		NetUtils.insertData(pkg, NetUtils.shortToBytes(identification), identificationOffset);
 		pkg[flagsOffset] = (byte)((flags << 5));
 		pkg[offsetOffset] = (byte)(pkg[offsetOffset] | offset >> 8);
@@ -746,26 +747,40 @@ public class IPPacket implements Packet {
 		NetUtils.insertData(pkg, NetUtils.addressToBytes(sourceAddress, "."), SourceOffset);
 		NetUtils.insertData(pkg, NetUtils.addressToBytes(destinationAddress, "."), destinationOffset);
 		
-		System.arraycopy(payload, 0, pkg, 20, payload.length);
 		
 		short sum = NetUtils.calcIPChecksum(pkg, 0, 20);
 
 		NetUtils.insertData(pkg, NetUtils.shortToBytes(sum), checksumOffset);
 		
-		sum = NetUtils.calcIPChecksum(pkg, 0, 20);
+		return pkg;
+	}
+
+	public byte[] getPacket() {
+		byte[] header = getHeader();
+		byte[] pkg = new byte[header.length + payload.length];
+
+		
+		System.arraycopy(header, 0, pkg, 0, header.length);
+		System.arraycopy(payload, 0, pkg, header.length, payload.length);
 		
 		
-		System.out.println("sending following package:");
+		
+		/*System.out.println("sending following package:");
 		EthernetPacket ether = EthernetPacket.createEthernetPacket((short)0, "08:00:27:27:6F:34", "08:00:27:27:6F:34", pkg);
 		try {
 			System.out.println(createIPPacket(ether).getInfo());
 		} catch (PacketParsingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 		
 		return pkg;		
 	}
+
+	public boolean isValid() {
+		return chkSumValid;
+	}
+
 
 	public String getInfo() {
 		StringBuffer info = new StringBuffer();

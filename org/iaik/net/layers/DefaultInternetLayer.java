@@ -211,7 +211,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return True if the packet is correct otherwise false.
 	 */
 	public boolean isValid(IPPacket packet) {
-		return true;
+		return packet.isValid();
 	}
 
 	/**
@@ -341,6 +341,13 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *            The received IP packet.
 	 */
 	public void processIP(IPPacket packet) {
+		
+		if(!isValid(packet))
+		{
+			System.out.println("Received an invalid IP package!");
+			return;
+		}
+		
 		System.out.println("Received a packet:");
 		if(packet.getProtocol() == IPPacket.ICMP_PROTOCOL) {
 			System.out.println("    Received an ICMP packet!!!");
@@ -349,12 +356,19 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			
 			try
 			{
+				//parse the ICMP packet
 				icmp = ICMPPacket.createICMPPacket(packet);
 				System.out.print(icmp.getInfo());
 			}
 			catch(PacketParsingException ex)
 			{
 				System.out.println("ICMP packet contained errors:" + ex.getMessage());
+				return;
+			}
+			
+			if(!icmp.isValid())
+			{
+				System.out.println("Received an invalid ICMP package!");
 				return;
 			}
 			
