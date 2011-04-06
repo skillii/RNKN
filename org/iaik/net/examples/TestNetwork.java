@@ -36,7 +36,11 @@ import java.util.Properties;
 
 import org.iaik.net.Network;
 import org.iaik.net.exceptions.NetworkException;
+import org.iaik.net.factories.InternetLayerFactory;
+import org.iaik.net.layers.DefaultInternetLayer;
 import org.iaik.net.layers.JPcapPhysicalSender;
+import org.iaik.net.packets.ICMPPacket;
+import org.iaik.net.packets.IPPacket;
 
 /**
  * Tests the network capturing capabilities using the basic templates of his
@@ -112,7 +116,30 @@ public class TestNetwork {
 					System.exit(-1);
 				}
 				try {
-					System.in.read();
+					int input;
+					boolean keepRunning = true;
+					
+					while(keepRunning)
+					{
+						input = System.in.read();
+						
+						switch((char) input)
+						{
+							case 'p':  // executes a ping request
+								//TODO: destination address as parameter
+								String destinationAddress = "192.168.56.1";
+								ICMPPacket icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, (short)0, (short)0, new byte[] {42, 42, 42, 42, 42, 42, 42, 42});
+								IPPacket iprequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress, icmprequest.getPacket());
+								InternetLayerFactory.getInstance().send(iprequest);
+								System.out.println("#### Sent ICMP Echo Request Packet to " + destinationAddress);
+								break;
+								
+							case 'q':  // quits the prog
+								keepRunning = false;
+								break;
+						}
+						
+					}
 					Network.stop();
 					System.exit(0);
 				} catch (Exception ioe) {
