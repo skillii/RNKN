@@ -30,13 +30,13 @@ public class ARPEntryImpl implements ARPEntry{
 
 	@Override
 	public String getInfo() {
-		// TODO Auto-generated method stub
+		
 		return mac;
 	}
 
 	@Override
 	public String getMACAddress() {
-		// TODO Auto-generated method stub
+		
 		return mac;
 	}
 

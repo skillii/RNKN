@@ -12,6 +12,7 @@ public class ARPTableImpl implements ARPTable{
 	
 	public ARPTableImpl()
 	{
+		
 		list = new Vector<ARPEntry>();
 	}
 	

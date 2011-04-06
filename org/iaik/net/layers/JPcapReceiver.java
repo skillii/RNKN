@@ -131,11 +131,15 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 					// else to do than to reply to ARP requests.
 					arpTable.add(arp);
 					receiveBuffer.add(arp);
+					log.info("should do");
+					log.debug("asdfasdfasdf");
 					log.info(arp.getInfo());
 				} else {
 					// TODO: Should we really add every ARP request we get to
 					// the ARP table.
-					arpTable.add(arp);
+					//arpTable.add(arp);
+					log.info("should do");
+					log.debug("asdfasdfasdf");
 				}
 			} else if (p.getFrameType() == EthernetPacket.ETHERTYPE_IP) {
 				IPPacket ip = IPPacket.createIPPacket(p);

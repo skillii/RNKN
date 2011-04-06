@@ -37,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 import org.iaik.net.Network;
 import org.iaik.net.StackParameters;
 import org.iaik.net.datatypes.interfaces.ARPTable;
+import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.factories.LinkLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
@@ -70,12 +71,15 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	private Properties properties;
 
 	private Log log;
+	
+	private ARPTable arpTable;
 
 	public DefaultInternetLayer() {
 
 		log = LogFactory.getLog(this.getClass());
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
+		arpTable = new ARPTableImpl();
 
 	}
 
@@ -181,7 +185,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The ARP table as {@link ARPTable} object.
 	 */
 	public ARPTable getARPTable() {
-		return null;
+		return arpTable;
 	}
 
 	/**
