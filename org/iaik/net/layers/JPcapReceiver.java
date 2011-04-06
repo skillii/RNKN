@@ -124,16 +124,21 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 			 */
 			if (p.getFrameType() == EthernetPacket.ETHERTYPE_ARP) {
 				ARPPacket arp = new ARPPacket(p);
+
 				if (arp.getTargetProtocolAddress().equalsIgnoreCase(iface.getIPAddress())
 						&& !arp.getSenderProtocolAddress().equalsIgnoreCase(iface.getIPAddress())) {
 					// TODO: Should we add the ARP already in the link layer to
 					// the ARP table? Because the network layer has than nothing
 					// else to do than to reply to ARP requests.
+					
 					arpTable.add(arp);
+					
 					receiveBuffer.add(arp);
+
 					log.info("should do");
 					log.debug("asdfasdfasdf");
 					log.info(arp.getInfo());
+
 				} else {
 					// TODO: Should we really add every ARP request we get to
 					// the ARP table.
@@ -149,7 +154,8 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 					// TODO: Hack to circumvent double reception of packets from
 					// within a VMWare.
 
-					if (prevDst != NetUtils.ipStringToInt(ip.getDestinationAddress())
+					//TODO: hack?? works for me without this hack!
+					if (true || prevDst != NetUtils.ipStringToInt(ip.getDestinationAddress())
 							|| prevSrc != NetUtils.ipStringToInt(ip.getSourceAddress()) || prevChecksum != ip.getChecksum()) {
 						// Store the values locally to use it for comparison
 						// later.

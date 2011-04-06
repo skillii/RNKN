@@ -39,15 +39,19 @@ import org.iaik.net.StackParameters;
 import org.iaik.net.datatypes.interfaces.ARPTable;
 import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
+import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.factories.LinkLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
 import org.iaik.net.interfaces.PhysicalSender;
 import org.iaik.net.packets.ARPPacket;
 import org.iaik.net.packets.EthernetPacket;
+import org.iaik.net.packets.ICMPPacket;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.Packet;
 import org.iaik.net.utils.NetUtils;
 import org.iaik.net.utils.NetworkBuffer;
+
+import sun.security.pkcs.ParsingException;
 
 /**
  * 
@@ -104,7 +108,6 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		sender = LinkLayerFactory.getInstance().getSender();
 
 		while (running) {
-
 			Packet receivedPacket = receiveBuffer.getNextPacket();
 
 			if (receivedPacket instanceof Packet) {
@@ -212,7 +215,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return True if the packet is correct otherwise false.
 	 */
 	public boolean isValid(IPPacket packet) {
-		return true;
+		return packet.isValid();
 	}
 
 	/**
@@ -237,7 +240,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			 */
 			if (packet.getTimeout() == 0 || packet.getTimeout() + StackParameters.ARP_TIMEOUT > System.currentTimeMillis()) {
 
-				String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
+				//String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
+				String destinationMACAddress = "0A:00:27:00:00:00";
 
 				if (!(destinationMACAddress instanceof String)) {
 					/*
@@ -312,8 +316,24 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *            The received ARP request.
 	 */
 	public void processARP(ARPPacket packet) {
-	}
+		
+		System.out.println("Begin of process ARP method\n");
+		Properties pts = this.getProperties();
+	
 
+		ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
+					                                pts.getProperty("mac-address") ,
+                                                    pts.getProperty("ip-address"), 
+                                                    packet.getSenderHardwareAddress(), 
+                                                    packet.getSenderProtocolAddress());
+
+	    System.out.println("ARP REPLY SENT\n");
+	    
+	    this.send(reply);
+	
+		
+		
+	}
 	/**
 	 * Processes an received IP packet. If the IP packet contains an ICMP, IGMP
 	 * or OSPF packet they are processed directly in this function. A response
@@ -325,7 +345,47 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *            The received IP packet.
 	 */
 	public void processIP(IPPacket packet) {
-
+		
+		if(!isValid(packet))
+		{
+			System.out.println("Received an invalid IP package!");
+			return;
+		}
+		
+		System.out.println("Received a packet:");
+		if(packet.getProtocol() == IPPacket.ICMP_PROTOCOL) {
+			System.out.println("    Received an ICMP packet!!!");
+			
+			ICMPPacket icmp;
+			
+			try
+			{
+				//parse the ICMP packet
+				icmp = ICMPPacket.createICMPPacket(packet);
+				System.out.print(icmp.getInfo());
+			}
+			catch(PacketParsingException ex)
+			{
+				System.out.println("ICMP packet contained errors:" + ex.getMessage());
+				return;
+			}
+			
+			if(!icmp.isValid())
+			{
+				System.out.println("Received an invalid ICMP package!");
+				return;
+			}
+			
+			switch(icmp.getType())
+			{
+				case ICMPPacket.ECHO_REQUEST:
+					ICMPPacket icmpreply = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REPLY, (byte)0, icmp.getIdentifier(), icmp.getSequenceNumber(), icmp.getPayload());
+					IPPacket ipreply = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, identification, packet.getDestinationAddress(), packet.getSourceAddress(), icmpreply.getPacket());
+					send(ipreply);
+					break;
+			}
+			
+		}
 	}
 
 	/**
@@ -361,7 +421,6 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The resolved MAC address of the specified IP address.
 	 */
 	private String resolveAddress(String remoteIP) {
-
 		return null;
 	}
 

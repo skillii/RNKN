@@ -71,7 +71,8 @@ public class NetworkBuffer {
 
 		synchronized (bufferMonitor) {
 			buffer.add(p);
-			// bufferMonitor.notify();
+			System.out.println("Added to buffer\n");
+			//bufferMonitor.notify();
 		}
 	}
 

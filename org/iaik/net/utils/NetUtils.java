@@ -776,4 +776,24 @@ public class NetUtils {
 		}
 		return data;
 	}
+	
+	public static short calcIPChecksum(byte[] data, int offset, int length)
+	{
+		int sum = 0;
+
+		
+		for(int i = offset; i < length-1 && i < data.length-1; i+=2)
+		{
+			int word = (int)(toInt(data[i])<<8 | toInt(data[i+1]));
+			
+			sum += word;
+		}
+		
+		while(sum>>16 != 0)
+		{
+			sum = (int)(sum & 0xFFFF) + ((int)sum>>16);
+		}
+		
+		return (short)((~sum) & 0xFFFF);
+	}
 }
