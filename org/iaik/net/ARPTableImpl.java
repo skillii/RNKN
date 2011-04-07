@@ -18,8 +18,30 @@ public class ARPTableImpl implements ARPTable{
 	
 	@Override
 	public void add(ARPEntry entry) {
+		ARPEntry element = new ARPEntryImpl();
+		
+		if(list.indexOf(entry) ==(-1))
+		{
 
-		list.add(entry);
+			element = this.findEntryForIP(entry.getIPAddress());
+			if(element != null)
+			{
+				System.out.print("Updated a MAC-Address for an existing IP\n\n");
+				element.setMACAddress(entry.getMACAddress());
+				return;
+			}
+			
+			element = this.findEntryForMAC(entry.getMACAddress());
+			if(element != null)
+			{
+				System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
+				element.setIPAddress(entry.getIPAddress());
+				return;
+			}
+			System.out.print("New ARPEntry added by ARPEntry\n\n");
+			list.add(entry);
+			
+		}
 
 	}
 
@@ -29,7 +51,35 @@ public class ARPTableImpl implements ARPTable{
 		e.setMACAddress(packet.getSenderHardwareAddress());
 		e.setIPAddress(packet.getSenderProtocolAddress());
 		e.setValid(true);
+		int i = 0;
+		while( i < list.size())
+		{
+			if(list.elementAt(i).getIPAddress().equals(e.getIPAddress()))
+			{
+				if(list.elementAt(i).getMACAddress().equals(e.getMACAddress()))			//ip & mac matches -> nothing left to do
+					return;
+				else
+				{
+					list.elementAt(i).setMACAddress(e.getMACAddress());					//update the MAC-Address
+					list.elementAt(i).setValid(true);
+					System.out.print("Updated a MAC-Address for an existing IP\n\n");
+					return;
+				}
+			}
+			else if(list.elementAt(i).getMACAddress().equals(e.getMACAddress()))
+			{
+				list.elementAt(i).setIPAddress(e.getIPAddress());							//update the IP-Address
+				list.elementAt(i).setValid(true);
+				System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
+				return;
+			}
+			i++;				
+		}
+		System.out.print("New ARPEntry added by ARPPacket\n\n");
 		list.add(e);
+	
+			
+		
 	}
 
 	@Override

@@ -142,7 +142,7 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 				} else {
 					// TODO: Should we really add every ARP request we get to
 					// the ARP table.
-					//arpTable.add(arp);
+					arpTable.add(arp);
 					//log.info("should do");
 					//log.debug("asdfasdfasdf");
 				}

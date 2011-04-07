@@ -15,11 +15,11 @@ public class ARPEntryImpl implements ARPEntry{
 		valid=false;
 	}
 	
-	ARPEntryImpl(String ipAdd, String macAdd, boolean vali)
+	ARPEntryImpl(String ipAdd, String macAdd, boolean val)
 	{
 		ip = ipAdd;
 		mac = macAdd;
-		valid = vali;
+		valid = val;
 	}
 	
 	@Override
@@ -59,9 +59,18 @@ public class ARPEntryImpl implements ARPEntry{
 	}
 
 	@Override
-	public void setValid(boolean valid) {
-		valid = true;
+	public void setValid(boolean vali) {
+		valid = vali;
 		
 	}
+	
+	public boolean equals( ARPEntryImpl entry)
+	{
+		if(this.getIPAddress().equals(entry.getIPAddress()) && this.getMACAddress().equals(entry.getMACAddress()) && (this.isValid() == entry.isValid()))
+			return true;
+		else return false;
+			
+	}
+	
 
 }
