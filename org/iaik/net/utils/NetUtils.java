@@ -782,9 +782,13 @@ public class NetUtils {
 		int sum = 0;
 
 		
-		for(int i = offset; i < length-1 && i < data.length-1; i+=2)
+		for(int i = offset; i < length && i < data.length; i+=2)
 		{
-			int word = (int)(toInt(data[i])<<8 | toInt(data[i+1]));
+			int word;
+			if(i == length-1 || i == data.length-1)
+				word = toInt(data[i])<<8;
+			else
+				word = (int)(toInt(data[i])<<8 | toInt(data[i+1]));
 			
 			sum += word;
 		}
