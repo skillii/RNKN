@@ -106,7 +106,16 @@ public class PingSender extends Thread
 		while(true)
 		{
 			while(!start_)
-				yield();
+			{
+				try
+				{
+					sleep(0,200);
+				}
+				catch(Exception e)
+				{
+					System.out.println("PingSender thread interrupted, message: " + e.getMessage());
+				}
+			}
 			
 			running_ = true;
 			start_ = false;
