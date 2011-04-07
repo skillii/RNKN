@@ -23,6 +23,7 @@ public class PingSender extends Thread
 	private String destinationAddress_;
 	private boolean replyReceived_;
 	private boolean running_;
+	private boolean start_;
 	private boolean timeout_;
 	private ICMPPacket icmpreply_;
 	private IPPacket echoreply_;
@@ -33,14 +34,18 @@ public class PingSender extends Thread
 	public static synchronized PingSender getInstance()
 	{
 		if(PingSender.instance_ == null)
+		{
 			PingSender.instance_ = new PingSender();
+			PingSender.instance_.start_ = false;
+			PingSender.instance_.start();
+		}
 		
 		return PingSender.instance_;
 	}
 	
 	public void sendPing(String destinationAddress)
 	{
-		if(running_)
+		if(running_ || start_)
 		{
 			System.out.println("there is already a PING running, stand by and have a coffee until it is finished");
 		}
@@ -50,9 +55,7 @@ public class PingSender extends Thread
 			System.out.println("PING: Now executing an ICMP echo request on " + destinationAddress + " for " + NR_OF_PINGS + " times:");
 			destinationAddress_ = destinationAddress;
 			
-			running_ = true;
-			
-			this.start();
+			start_ = true;
 		}
 	}
 	
@@ -99,61 +102,71 @@ public class PingSender extends Thread
 		int i;
 		long sentMillis;
 		
-		for(i = 0; i < NR_OF_PINGS; i++)
+		
+		while(true)
 		{
-			timeout_ = false;
-			
-			icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, IDENTIFIER, (short)i, ICMPPacket.DEFAULT_PAYLOAD);
-			echorequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress_, icmprequest.getPacket());
-			inetLayer.send(echorequest);
-			sentMillis = System.currentTimeMillis();
-			System.out.print("Sent Echo Request #" + i + " to " + destinationAddress_ + ": ");
-			
-			while(!replyReceived_)
-			{
-				if(System.currentTimeMillis() - sentMillis > PING_TIMEOUT_MILLIS)
-				{
-					timeout_ = true;
-					break;
-				}
+			while(!start_)
 				yield();
-			}
 			
-			replyReceived_ = false;
+			running_ = true;
+			start_ = false;
 			
-			if(timeout_)
+			for(i = 0; i < NR_OF_PINGS; i++)
 			{
-				System.out.println("Echo Reply timed out!");
-			}
-			else
-			{
-				if(!echoreply_.isValid() || !icmpreply_.isValid())
+				timeout_ = false;
+				
+				icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, IDENTIFIER, (short)i, ICMPPacket.DEFAULT_PAYLOAD);
+				echorequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress_, icmprequest.getPacket());
+				inetLayer.send(echorequest);
+				sentMillis = System.currentTimeMillis();
+				System.out.println("Sent Echo Request #" + i + " to " + destinationAddress_ + ": ");
+				
+				while(!replyReceived_)
 				{
-					System.out.println("ERROR: received an invalid packet!");
+					if(System.currentTimeMillis() - sentMillis > PING_TIMEOUT_MILLIS)
+					{
+						timeout_ = true;
+						break;
+					}
+					yield();
 				}
-				else if(!echoreply_.getSourceAddress().equals(destinationAddress_))
+				
+				replyReceived_ = false;
+				
+				if(timeout_)
 				{
-					System.out.println("ERROR: received a reply from " + echoreply_.getSourceAddress());
-				}
-				else if(icmpreply_.getIdentifier() != IDENTIFIER)
-				{
-					System.out.println("ERROR: wrong identifier field in received packet (" + icmpreply_.getIdentifier() + ")");
-				}
-				else if(icmpreply_.getSequenceNumber() != i)
-				{
-					System.out.println("ERROR: wrong sequence number in received packet (" + icmpreply_.getSequenceNumber() + ")");
-				}
-				else if(!equalPayloads(icmpreply_.getPayload(), icmprequest.getPayload()))
-				{
-					System.out.println("ERROR: payload mismatch!");
+					System.out.println("Echo Reply timed out!");
 				}
 				else
 				{
-					System.out.println("Received Echo Reply, sequence number is " + icmpreply_.getSequenceNumber());
+					if(!echoreply_.isValid() || !icmpreply_.isValid())
+					{
+						System.out.println("ERROR: received an invalid packet!");
+					}
+					else if(!echoreply_.getSourceAddress().equals(destinationAddress_))
+					{
+						System.out.println("ERROR: received a reply from " + echoreply_.getSourceAddress());
+					}
+					else if(icmpreply_.getIdentifier() != IDENTIFIER)
+					{
+						System.out.println("ERROR: wrong identifier field in received packet (" + icmpreply_.getIdentifier() + ")");
+					}
+					else if(icmpreply_.getSequenceNumber() != i)
+					{
+						System.out.println("ERROR: wrong sequence number in received packet (" + icmpreply_.getSequenceNumber() + ")");
+					}
+					else if(!equalPayloads(icmpreply_.getPayload(), icmprequest.getPayload()))
+					{
+						System.out.println("ERROR: payload mismatch!");
+					}
+					else
+					{
+						System.out.println("Received Echo Reply, sequence number is " + icmpreply_.getSequenceNumber());
+					}
 				}
 			}
+			
+			running_ = false;
 		}
-		
-		running_ = false;
 	}
 }
