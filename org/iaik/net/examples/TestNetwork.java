@@ -32,7 +32,10 @@ package org.iaik.net.examples;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Properties;
+import java.util.StringTokenizer;
 
 import org.iaik.net.Network;
 import org.iaik.net.exceptions.NetworkException;
@@ -41,6 +44,8 @@ import org.iaik.net.layers.DefaultInternetLayer;
 import org.iaik.net.layers.JPcapPhysicalSender;
 import org.iaik.net.packets.ICMPPacket;
 import org.iaik.net.packets.IPPacket;
+import org.iaik.net.utils.NetUtils;
+import org.iaik.net.utils.PingSender;
 
 /**
  * Tests the network capturing capabilities using the basic templates of his
@@ -116,27 +121,54 @@ public class TestNetwork {
 					System.exit(-1);
 				}
 				try {
-					int input;
 					boolean keepRunning = true;
+					StringTokenizer st;
+					BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+					String inputLine;
+					String command;
+					String destinationAddress;
 					
 					while(keepRunning)
 					{
-						input = System.in.read();
 						
-						switch((char) input)
+						inputLine = input.readLine();
+						st = new StringTokenizer(inputLine);
+						
+						command = st.nextToken();
+						
+						if(command.equals("ping"))  // executes a ping request
 						{
-							case 'p':  // executes a ping request
-								//TODO: destination address as parameter
-								String destinationAddress = "192.168.56.1";
-								ICMPPacket icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, (short)0, (short)0, new byte[] {42, 42, 42, 42, 42, 42, 42, 42});
-								IPPacket iprequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress, icmprequest.getPacket());
-								InternetLayerFactory.getInstance().send(iprequest);
-								System.out.println("#### Sent ICMP Echo Request Packet to " + destinationAddress);
-								break;
+							if(st.countTokens() != 1)
+							{
+								System.out.println("oops, you gave me too much or too less arguments! usage: ping <ip-address>");
+							}
+							else
+							{
+								destinationAddress = st.nextToken();
 								
-							case 'q':  // quits the prog
-								keepRunning = false;
-								break;
+								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
+								{
+									//do the ping!
+									PingSender.getInstance().sendPing(destinationAddress);
+//									ICMPPacket icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, (short)0, (short)0, new byte[] {42, 42, 42, 42, 42, 42, 42, 42});
+//									IPPacket iprequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress, icmprequest.getPacket());
+//									InternetLayerFactory.getInstance().send(iprequest);
+//									System.out.println("#### Sent ICMP Echo Request Packet to " + destinationAddress);
+								}
+								else
+								{
+									System.out.println("hey, the IP you gave me is not valid! shame on you!");
+								}
+							}
+						}
+						else if(command.equals("exit") || command.equals("quit"))
+						{
+							System.out.println("so long!");
+							keepRunning = false;
+						}
+						else
+						{
+							System.out.println("unknown command, use 'ping <addr>' or 'exit' or 'quit'");
 						}
 						
 					}
