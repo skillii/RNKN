@@ -115,7 +115,7 @@ public class TestNetwork {
 				System.setProperty("log4j.configuration", configs.getProperty("log-config"));
 				try {
 					Network.start(configs, configs.getProperty("ip-address"), configs.getProperty("mac-address"), configs
-							.getProperty("capture-filter"));
+							.getProperty("gateway"), configs.getProperty("netmask"), configs.getProperty("capture-filter"));
 				} catch (NetworkException ne) {
 					System.err.println("Some error occured during the starting of the network: \n" + ne.getMessage());
 					System.exit(-1);

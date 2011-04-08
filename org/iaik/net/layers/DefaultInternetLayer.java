@@ -37,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 import org.iaik.net.Network;
 import org.iaik.net.StackParameters;
 import org.iaik.net.datatypes.interfaces.ARPTable;
+import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.factories.LinkLayerFactory;
@@ -75,12 +76,15 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	private Properties properties;
 
 	private Log log;
+	
+	private ARPTable arpTable;
 
 	public DefaultInternetLayer() {
 
 		log = LogFactory.getLog(this.getClass());
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
+		arpTable = new ARPTableImpl();
 
 	}
 
@@ -185,7 +189,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The ARP table as {@link ARPTable} object.
 	 */
 	public ARPTable getARPTable() {
-		return null;
+		return arpTable;
 	}
 
 	/**
@@ -237,8 +241,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			 */
 			if (packet.getTimeout() == 0 || packet.getTimeout() + StackParameters.ARP_TIMEOUT > System.currentTimeMillis()) {
 
-				//String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
-				String destinationMACAddress = "0A:00:27:00:00:00";
+				String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
+				//String destinationMACAddress = "0A:00:27:00:00:00";
 
 				if (!(destinationMACAddress instanceof String)) {
 					/*
@@ -426,7 +430,50 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The resolved MAC address of the specified IP address.
 	 */
 	private String resolveAddress(String remoteIP) {
-		return null;
+		String  MAC;
+		if(isSameSubnet(remoteIP))							//we are in the same SUBNET
+		{
+			MAC = arpTable.resolveIPAddress(remoteIP)	;	
+			if(MAC instanceof String)											// found MAC, return MAC
+				return MAC;
+			else if(MAC == null)							//IP-Address is not in ARPTable ->  make ARPRequest
+			{
+				ARPRequest(remoteIP);
+				return null;
+				
+			}
+			return MAC;
+				
+		}
+		else												//Other Subnet -> return gateway-MAC
+		{
+			MAC = arpTable.resolveIPAddress(Network.gateway);		
+			if(MAC instanceof String)											// found MAC, return MAC
+				return MAC;
+			else if(MAC == null)							//IP-Address is not in ARPTable ->  make ARPRequest
+			{
+				ARPRequest(Network.gateway);
+				return null;
+				
+			}
+			return MAC;
+		}
+	}
+	
+	public void ARPRequest(String ipAddress) {
+	System.out.println("Begin of ARP-Request method\n");
+	Properties pts = this.getProperties();
+
+
+	ARPPacket request = ARPPacket.createARPPacket(ARPPacket.ARP_REQUEST,
+				                                pts.getProperty("mac-address") ,
+                                                pts.getProperty("ip-address"), 
+                                                "FF:FF:FF:FF:FF:FF", 
+                                                ipAddress);
+
+    System.out.println("ARP-Request SENT\n");
+    
+    this.send(request);
 	}
 
 	/**
@@ -439,7 +486,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *         given true is returned.
 	 */
 	private boolean isSameSubnet(String remoteAddr) {
-		if (!(Network.gateway instanceof String))
+		if (!(Network.gateway instanceof String))			//TODO: Check if this works truly
 			return true;
 
 		return ((NetUtils.ipStringToInt(Network.ip) & NetUtils.ipStringToInt(Network.netmask)) ^ (NetUtils.ipStringToInt(remoteAddr) & NetUtils
