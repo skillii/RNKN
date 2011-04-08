@@ -49,6 +49,7 @@ import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.Packet;
 import org.iaik.net.utils.NetUtils;
 import org.iaik.net.utils.NetworkBuffer;
+import org.iaik.net.utils.PingSender;
 
 import sun.security.pkcs.ParsingException;
 
@@ -378,6 +379,14 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 					ICMPPacket icmpreply = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REPLY, (byte)0, icmp.getIdentifier(), icmp.getSequenceNumber(), icmp.getPayload());
 					IPPacket ipreply = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, identification, packet.getDestinationAddress(), packet.getSourceAddress(), icmpreply.getPacket());
 					send(ipreply);
+					break;
+					
+				case ICMPPacket.ECHO_REPLY:
+					PingSender.getInstance().replyCallback(icmp, packet);
+//					System.out.println("#### Received an ICMP Echo Reply:  ####");
+//					System.out.println("# Source IP is " + packet.getSourceAddress());
+//					System.out.println("# TTL is " + packet.getTtl());
+//					System.out.println("#### Pong! ####");
 					break;
 			}
 			
