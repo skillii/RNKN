@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/cbichler/Dokumente/Uni/RKN/log4j-1.2.12.jar"/>
+	<classpathentry kind="lib" path="/home/cbichler/Dokumente/Uni/RKN/jpcap.jar"/>
+	<classpathentry kind="lib" path="/home/cbichler/Dokumente/Uni/RKN/commons-logging.jar"/>
+	<classpathentry kind="output" path=""/>
+</classpath>
