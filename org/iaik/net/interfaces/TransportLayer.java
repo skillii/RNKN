@@ -31,7 +31,9 @@
 package org.iaik.net.interfaces;
 
 import java.util.Properties;
+import org.iaik.net.interfaces.InternetLayer;
 
+import org.iaik.net.RUDP.RUDPConnection;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.packets.IPPacket;
 
@@ -55,6 +57,10 @@ public interface TransportLayer {
 	public Properties getProperties();
 
 	public void checkTimeouts();
-
-	public void send(byte[] packet, int remoteIP);
+	
+	public void setInternetLayer(InternetLayer internetLayer);
+	
+	public void addRUDPConnection(RUDPConnection connection);
+	
+	public void removeRUDPConnection(RUDPConnection connection);
 }

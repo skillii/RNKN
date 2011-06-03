@@ -41,8 +41,10 @@ import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.factories.LinkLayerFactory;
+import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
 import org.iaik.net.interfaces.PhysicalSender;
+import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.ARPPacket;
 import org.iaik.net.packets.EthernetPacket;
 import org.iaik.net.packets.ICMPPacket;
@@ -78,6 +80,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	private Log log;
 	
 	private ARPTable arpTable;
+	
+	private TransportLayer transportLayer;
 
 	public DefaultInternetLayer() {
 
@@ -85,10 +89,10 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
 		arpTable = new ARPTableImpl();
-
 	}
 
 	public void init() throws NetworkException {
+		transportLayer = TransportLayerFactory.createInstance();
 	}
 
 	public void setProperties(Properties properties) {
@@ -395,6 +399,10 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			}
 			
 		}
+		else
+		{
+			transportLayer.process(packet);
+		}
 	}
 
 	/**
@@ -508,5 +516,11 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void sendPacket(Packet packet) {
 		sender.send(packet);
+	}
+
+	@Override
+	public void setTransportLayer(TransportLayer transportLayer) {
+		this.transportLayer = transportLayer;
+		
 	}
 }
