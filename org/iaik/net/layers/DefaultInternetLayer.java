@@ -92,7 +92,19 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	}
 
 	public void init() throws NetworkException {
-		transportLayer = TransportLayerFactory.createInstance();
+		if(properties.getProperty("transportfilterlayer") != null)
+		{
+			try {
+				transportLayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
+			}
+			catch (Exception e) {
+			}
+			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
+		}
+		else
+		{
+			transportLayer = TransportLayerFactory.createInstance();
+		}
 	}
 
 	public void setProperties(Properties properties) {

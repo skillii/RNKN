@@ -98,20 +98,7 @@ public class TransportLayerFactory {
 
 		try {
 			TransportLayer transportlayer;
-			if(properties.getProperty("transportfilterlayer") != null)
-			{
-				transportlayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
-				TransportLayer realTransportlayer = (TransportLayer) Class.forName(properties.getProperty("transportlayer")).newInstance();
-				
-				realTransportlayer.setProperties(properties);
-				realTransportlayer.init();
-				
-				((InternetLayer)transportlayer).setTransportLayer(realTransportlayer);
-			}
-			else
-			{
-				transportlayer = (TransportLayer) Class.forName(properties.getProperty("transportlayer")).newInstance();
-			}
+			transportlayer = (TransportLayer) Class.forName(properties.getProperty("transportlayer")).newInstance();
 
 			TransportLayerFactory.transportlayer = transportlayer;
 

@@ -33,6 +33,16 @@ public class DefaultTransportLayer implements TransportLayer {
 		if(packet.getProtocol() == IPPacket.RUDP_PROTOCOL)
 		{
 			//TODO: packet parsing stuff...
+			
+			int port = 0;
+			
+			for(int i = 0; i < connections.size(); i++)
+			{
+				if(connections.get(i).getPort() == port)
+				{
+					connections.get(i).packetReceived();
+				}
+			}
 		}
 	}
 
@@ -46,7 +56,6 @@ public class DefaultTransportLayer implements TransportLayer {
 	@Override
 	public void terminate() {
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -64,5 +73,10 @@ public class DefaultTransportLayer implements TransportLayer {
 	public void removeRUDPConnection(RUDPConnection connection) {
 		this.connections.remove(connection);
 		
+	}
+
+	@Override
+	public void sendPacket(IPPacket packet) {
+		internetLayer.send(packet);
 	}
 }

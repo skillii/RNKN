@@ -51,6 +51,8 @@ public interface TransportLayer {
 	public void terminate();
 
 	public void process(IPPacket packet);
+	
+	public void sendPacket(IPPacket packet);
 
 	public void setProperties(Properties properties);
 
