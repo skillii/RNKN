@@ -100,6 +100,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			catch (Exception e) {
 			}
 			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
+			TransportLayerFactory.getInstance().setInternetLayer((InternetLayer)transportLayer);
 		}
 		else
 		{

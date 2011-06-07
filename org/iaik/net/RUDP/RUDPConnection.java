@@ -73,11 +73,22 @@ public abstract class RUDPConnection implements Runnable {
 	public abstract void connectPhase();
 	
 	/**
+	 * this method will be called if a packet is received during receive phase.
+	 * this is necessary, since the Client Implementation is different from the Server Implementation
+	 * during the connect phase.
+	 */
+	protected abstract void connectPhasePacketReceived();
+	
+	/**
 	 * This method will be called by TransportLayer, when a new Packet for this Connection arrives.
 	 */
 	public void packetReceived()
 	{
-		
+		if(!isConnected())
+		{
+			connectPhasePacketReceived();
+		}
+			
 	}
 	
 	/**
