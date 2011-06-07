@@ -4,9 +4,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.iaik.net.interfaces.RUDPClientCallback;
+import org.iaik.net.packets.rudp.*;
 
 
 public class RUDPClientConnection extends RUDPConnection {
@@ -17,6 +20,8 @@ public class RUDPClientConnection extends RUDPConnection {
 	private Semaphore connectSem;
 	private Log log;
 	private boolean connectTimeoutReached = false;
+	
+	private RUDP_SYNPacket synAckReceived;
 
 	public RUDPClientConnection(int port, String remoteIP, int remotePort, RUDPClientCallback callback) {
 		super(port, callback);
@@ -48,6 +53,7 @@ public class RUDPClientConnection extends RUDPConnection {
 		for(connectTry = 0; connectTry < maxConnectRetries; connectTry++)
 		{
 			//Send SYN:
+			lastSequenceNrSent = 123;
 			
 			state = ClientState.SYNSent;
 			
@@ -56,7 +62,15 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			//Wait for SYNACK
 			try {
-				connectSem.acquire();
+				while(true)
+				{
+					connectSem.acquire();
+					
+					//TODO:additional checks necessary!!!
+					
+					if(synAckReceived.getAck_num() == lastSequenceNrSent)
+						break;
+				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 				return;
@@ -71,10 +85,9 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			connectTimer.cancel();
 			
-			//Send ACK:
+			//SYNACK received, so Send ACK:
 			
 			state = ClientState.Connected;
-			
 		}
 	}
 	
@@ -87,5 +100,19 @@ public class RUDPClientConnection extends RUDPConnection {
 			connectSem.release();
 		}
 	
+	}
+
+	@Override
+	protected void connectPhasePacketReceived(RUDPPacket packet) {
+		if(packet instanceof RUDP_SYNPacket)
+		{
+			RUDP_SYNPacket synPacket = (RUDP_SYNPacket)packet;
+			if(synPacket.isAck())
+			{
+				//some additional checks!
+				synAckReceived = synPacket;
+				connectSem.release();
+			}
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package org.iaik.net.RUDP;
 
 import org.iaik.net.interfaces.RUDPCallback;
+import org.iaik.net.packets.rudp.RUDPPacket;
 
 public abstract class RUDPConnection implements Runnable {
 	protected int port;
@@ -8,6 +9,7 @@ public abstract class RUDPConnection implements Runnable {
 	private Thread thread;
 	protected String remoteIP;
 	private RUDPCallback callback;
+	protected int lastSequenceNrSent = 0;
 	
 	
 	RUDPConnection(int port, RUDPCallback callback) {
@@ -77,16 +79,16 @@ public abstract class RUDPConnection implements Runnable {
 	 * this is necessary, since the Client Implementation is different from the Server Implementation
 	 * during the connect phase.
 	 */
-	protected abstract void connectPhasePacketReceived();
+	protected abstract void connectPhasePacketReceived(RUDPPacket packet);
 	
 	/**
 	 * This method will be called by TransportLayer, when a new Packet for this Connection arrives.
 	 */
-	public void packetReceived()
+	public void packetReceived(RUDPPacket packet)
 	{
 		if(!isConnected())
 		{
-			connectPhasePacketReceived();
+			connectPhasePacketReceived(packet);
 		}
 			
 	}

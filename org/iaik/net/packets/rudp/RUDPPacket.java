@@ -10,6 +10,14 @@ public abstract class RUDPPacket implements Packet {
     //Fields of the header are common for all types
 	//of RUDP packets
 	boolean syn;
+	public boolean isAck() {
+		return ack;
+	}
+
+	public byte getAck_num() {
+		return ack_num;
+	}
+
 	boolean ack;
 	boolean eak;
 	boolean rst;

@@ -6,6 +6,7 @@ import org.iaik.net.RUDP.*;
 import org.iaik.net.exceptions.*;
 import org.iaik.net.interfaces.*;
 import org.iaik.net.packets.*;
+import org.iaik.net.packets.rudp.RUDPPacket;
 
 public class DefaultTransportLayer implements TransportLayer {
 
@@ -40,7 +41,15 @@ public class DefaultTransportLayer implements TransportLayer {
 			{
 				if(connections.get(i).getPort() == port)
 				{
-					connections.get(i).packetReceived();
+					RUDPPacket rudpPacket;
+					try {
+						rudpPacket = RUDPPacket.parsePacket(packet.getPayload());
+					} catch (PacketParsingException e) {
+						//TODO: what should we dooo????
+						e.printStackTrace();
+						return;
+					}
+					connections.get(i).packetReceived(rudpPacket);
 				}
 			}
 		}
