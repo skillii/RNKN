@@ -94,6 +94,7 @@ public class TransportLayerFactory {
 	 */
 	public static TransportLayer createInstance(Properties properties) throws NetworkException {
 
+		
 		TransportLayerFactory.properties = properties;
 
 		try {

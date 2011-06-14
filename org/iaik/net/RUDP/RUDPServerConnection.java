@@ -12,7 +12,7 @@ import org.iaik.net.packets.rudp.*;
 
 public class RUDPServerConnection extends RUDPConnection {
 	private ServerState state;
-	private TransportLayer transportLayer;
+
 	private RUDPServerCallback serverCallback;
 	private boolean connectTimeoutReached;
 	private int connectTimeoutms = 1000;
@@ -22,7 +22,7 @@ public class RUDPServerConnection extends RUDPConnection {
 	public RUDPServerConnection(int port, RUDPServerCallback callback) {
 		super(port, callback);
 		state = ServerState.Closed;
-		transportLayer = TransportLayerFactory.getInstance();
+
 		connectSem = new Semaphore(0);
 	}
 	
@@ -33,7 +33,7 @@ public class RUDPServerConnection extends RUDPConnection {
 	}
 
 	@Override
-	public void connectPhase() {
+	protected void connectPhase() {
 		//Wait for an incoming SYN-Request
 		try {
 			connectSem.acquire();

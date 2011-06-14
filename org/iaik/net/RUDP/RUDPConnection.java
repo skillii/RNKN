@@ -1,6 +1,8 @@
 package org.iaik.net.RUDP;
 
+import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPCallback;
+import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.rudp.RUDPPacket;
 
 public abstract class RUDPConnection implements Runnable {
@@ -10,11 +12,12 @@ public abstract class RUDPConnection implements Runnable {
 	protected String remoteIP;
 	private RUDPCallback callback;
 	protected int lastSequenceNrSent = 0;
-	
+	protected TransportLayer transportLayer;
 	
 	RUDPConnection(int port, RUDPCallback callback) {
 		this.port = port;
 		this.callback = callback;
+		transportLayer = TransportLayerFactory.getInstance();
 	}
 	
 	/**
@@ -72,7 +75,7 @@ public abstract class RUDPConnection implements Runnable {
 	 * should perform for instance in RUDPServerConnection the 3 way Handshake for incoming
 	 * Client requests
 	 */
-	public abstract void connectPhase();
+	protected abstract void connectPhase();
 	
 	/**
 	 * this method will be called if a packet is received during receive phase.

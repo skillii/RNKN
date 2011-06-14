@@ -40,6 +40,7 @@ import org.iaik.net.datatypes.interfaces.ARPTable;
 import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.PacketParsingException;
+import org.iaik.net.factories.InternetLayerFactory;
 import org.iaik.net.factories.LinkLayerFactory;
 import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
@@ -53,8 +54,6 @@ import org.iaik.net.packets.Packet;
 import org.iaik.net.utils.NetUtils;
 import org.iaik.net.utils.NetworkBuffer;
 import org.iaik.net.utils.PingSender;
-
-import sun.security.pkcs.ParsingException;
 
 /**
  * 
@@ -92,19 +91,22 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	}
 
 	public void init() throws NetworkException {
+
 		if(properties.getProperty("transportfilterlayer") != null)
 		{
 			try {
 				transportLayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
 			}
 			catch (Exception e) {
+				System.out.println(e.getMessage());
 			}
 			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
 			TransportLayerFactory.getInstance().setInternetLayer((InternetLayer)transportLayer);
 		}
 		else
 		{
-			transportLayer = TransportLayerFactory.createInstance();
+			transportLayer = TransportLayerFactory.createInstance(properties);
+			transportLayer.setInternetLayer(InternetLayerFactory.getInstance());
 		}
 	}
 

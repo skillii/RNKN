@@ -2,9 +2,14 @@ package org.iaik.net.RUDP;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
+import org.iaik.net.Network;
+import org.iaik.net.packets.IPPacket;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,12 +17,14 @@ import org.iaik.net.interfaces.RUDPClientCallback;
 import org.iaik.net.packets.rudp.*;
 
 
+
 public class RUDPClientConnection extends RUDPConnection {
 	private ClientState state;
 	private RUDPClientCallback clientCallback;
 	private final int maxConnectRetries = 3;
 	private final int connectTimeoutms = 1000;
-	private Semaphore connectSem;
+	private Condition connectCondition;
+	private Lock connectConditionLock;
 	private Log log;
 	private boolean connectTimeoutReached = false;
 	
@@ -26,9 +33,13 @@ public class RUDPClientConnection extends RUDPConnection {
 	public RUDPClientConnection(int port, String remoteIP, int remotePort, RUDPClientCallback callback) {
 		super(port, callback);
 		super.remotePort = remotePort;
+		super.remoteIP = remoteIP;
 		state = ClientState.Disconnected;
 		this.clientCallback = callback;
-		connectSem = new Semaphore(0);
+		
+		connectConditionLock = new ReentrantLock();
+		connectCondition = connectConditionLock.newCondition();
+		
 		log = LogFactory.getLog(this.getClass());
 	}
 	
@@ -38,7 +49,7 @@ public class RUDPClientConnection extends RUDPConnection {
 	}
 
 	@Override
-	public void connectPhase() {
+	protected void connectPhase() {
 		
 	}
 	
@@ -48,12 +59,23 @@ public class RUDPClientConnection extends RUDPConnection {
 	public void connect()
 	{
 		int connectTry;
-		//TODO: 3 way handshake:
+		
+		RUDPPacket rudpPack;
+		IPPacket rudpPackIP;
+		
+		
 		
 		for(connectTry = 0; connectTry < maxConnectRetries; connectTry++)
 		{
+			log.debug("connecting to client... try: " + connectTry);
 			//Send SYN:
 			lastSequenceNrSent = 123;
+			rudpPack = new RUDP_SYNPacket(false, (byte)lastSequenceNrSent, (byte)0, (short)remotePort, (short)port, new byte[1]);
+			
+			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
+			transportLayer.sendPacket(rudpPackIP);
+
+			log.debug("SYN Packet sent, waiting for SYNACK");
 			
 			state = ClientState.SYNSent;
 			
@@ -64,7 +86,9 @@ public class RUDPClientConnection extends RUDPConnection {
 			try {
 				while(true)
 				{
-					connectSem.acquire();
+					connectConditionLock.lock();
+					connectCondition.await();
+					connectConditionLock.unlock();
 					
 					//TODO:additional checks necessary!!!
 					
@@ -79,6 +103,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			if(connectTimeoutReached)
 			{
 				//retry...
+				log.debug("timeout reached...");
 				state = ClientState.Disconnected;
 				continue;
 			}
@@ -97,7 +122,10 @@ public class RUDPClientConnection extends RUDPConnection {
 		@Override
 		public void run() {
 			connectTimeoutReached = true;
-			connectSem.release();
+			
+			connectConditionLock.lock();
+			connectCondition.signal();
+			connectConditionLock.unlock();
 		}
 	
 	}
@@ -111,7 +139,10 @@ public class RUDPClientConnection extends RUDPConnection {
 			{
 				//some additional checks!
 				synAckReceived = synPacket;
-				connectSem.release();
+				
+				connectConditionLock.lock();
+				connectCondition.signal();
+				connectConditionLock.unlock();
 			}
 		}
 	}
