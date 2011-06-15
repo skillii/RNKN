@@ -37,11 +37,15 @@ import org.apache.commons.logging.LogFactory;
 import org.iaik.net.Network;
 import org.iaik.net.StackParameters;
 import org.iaik.net.datatypes.interfaces.ARPTable;
+import org.iaik.net.ARPTableImpl;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.PacketParsingException;
+import org.iaik.net.factories.InternetLayerFactory;
 import org.iaik.net.factories.LinkLayerFactory;
+import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.InternetLayer;
 import org.iaik.net.interfaces.PhysicalSender;
+import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.ARPPacket;
 import org.iaik.net.packets.EthernetPacket;
 import org.iaik.net.packets.ICMPPacket;
@@ -49,8 +53,7 @@ import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.Packet;
 import org.iaik.net.utils.NetUtils;
 import org.iaik.net.utils.NetworkBuffer;
-
-import sun.security.pkcs.ParsingException;
+import org.iaik.net.utils.PingSender;
 
 /**
  * 
@@ -74,16 +77,37 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	private Properties properties;
 
 	private Log log;
+	
+	private ARPTable arpTable;
+	
+	private TransportLayer transportLayer;
 
 	public DefaultInternetLayer() {
 
 		log = LogFactory.getLog(this.getClass());
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
-
+		arpTable = new ARPTableImpl();
 	}
 
 	public void init() throws NetworkException {
+
+		if(properties.getProperty("transportfilterlayer") != null)
+		{
+			try {
+				transportLayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
+			}
+			catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
+			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
+			TransportLayerFactory.getInstance().setInternetLayer((InternetLayer)transportLayer);
+		}
+		else
+		{
+			transportLayer = TransportLayerFactory.createInstance(properties);
+			transportLayer.setInternetLayer(InternetLayerFactory.getInstance());
+		}
 	}
 
 	public void setProperties(Properties properties) {
@@ -184,7 +208,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The ARP table as {@link ARPTable} object.
 	 */
 	public ARPTable getARPTable() {
-		return null;
+		return arpTable;
 	}
 
 	/**
@@ -236,8 +260,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			 */
 			if (packet.getTimeout() == 0 || packet.getTimeout() + StackParameters.ARP_TIMEOUT > System.currentTimeMillis()) {
 
-				//String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
-				String destinationMACAddress = "0A:00:27:00:00:00";
+				String destinationMACAddress = resolveAddress(((IPPacket) packet).getDestinationAddress());
+				//String destinationMACAddress = "0A:00:27:00:00:00";
 
 				if (!(destinationMACAddress instanceof String)) {
 					/*
@@ -379,8 +403,20 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 					IPPacket ipreply = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, identification, packet.getDestinationAddress(), packet.getSourceAddress(), icmpreply.getPacket());
 					send(ipreply);
 					break;
+					
+				case ICMPPacket.ECHO_REPLY:
+					PingSender.getInstance().replyCallback(icmp, packet);
+//					System.out.println("#### Received an ICMP Echo Reply:  ####");
+//					System.out.println("# Source IP is " + packet.getSourceAddress());
+//					System.out.println("# TTL is " + packet.getTtl());
+//					System.out.println("#### Pong! ####");
+					break;
 			}
 			
+		}
+		else
+		{
+			transportLayer.process(packet);
 		}
 	}
 
@@ -417,7 +453,50 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 * @return The resolved MAC address of the specified IP address.
 	 */
 	private String resolveAddress(String remoteIP) {
-		return null;
+		String  MAC;
+		if(isSameSubnet(remoteIP))							//we are in the same SUBNET
+		{
+			MAC = arpTable.resolveIPAddress(remoteIP)	;	
+			if(MAC instanceof String)											// found MAC, return MAC
+				return MAC;
+			else if(MAC == null)							//IP-Address is not in ARPTable ->  make ARPRequest
+			{
+				ARPRequest(remoteIP);
+				return null;
+				
+			}
+			return MAC;
+				
+		}
+		else												//Other Subnet -> return gateway-MAC
+		{
+			MAC = arpTable.resolveIPAddress(Network.gateway);		
+			if(MAC instanceof String)											// found MAC, return MAC
+				return MAC;
+			else if(MAC == null)							//IP-Address is not in ARPTable ->  make ARPRequest
+			{
+				ARPRequest(Network.gateway);
+				return null;
+				
+			}
+			return MAC;
+		}
+	}
+	
+	public void ARPRequest(String ipAddress) {
+	System.out.println("Begin of ARP-Request method\n");
+	Properties pts = this.getProperties();
+
+
+	ARPPacket request = ARPPacket.createARPPacket(ARPPacket.ARP_REQUEST,
+				                                pts.getProperty("mac-address") ,
+                                                pts.getProperty("ip-address"), 
+                                                "FF:FF:FF:FF:FF:FF", 
+                                                ipAddress);
+
+    System.out.println("ARP-Request SENT\n");
+    
+    this.send(request);
 	}
 
 	/**
@@ -430,7 +509,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 *         given true is returned.
 	 */
 	private boolean isSameSubnet(String remoteAddr) {
-		if (!(Network.gateway instanceof String))
+		if (!(Network.gateway instanceof String))			//TODO: Check if this works truly
 			return true;
 
 		return ((NetUtils.ipStringToInt(Network.ip) & NetUtils.ipStringToInt(Network.netmask)) ^ (NetUtils.ipStringToInt(remoteAddr) & NetUtils
@@ -452,5 +531,11 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void sendPacket(Packet packet) {
 		sender.send(packet);
+	}
+
+	@Override
+	public void setTransportLayer(TransportLayer transportLayer) {
+		this.transportLayer = transportLayer;
+		
 	}
 }

@@ -30,4 +30,6 @@ public interface InternetLayer extends Runnable {
 	public void send(byte[] data, int address, byte protocol);
 
 	public void send(byte[] data, String address, byte protocol);
+	
+	public void setTransportLayer(TransportLayer transportLayer);
 }

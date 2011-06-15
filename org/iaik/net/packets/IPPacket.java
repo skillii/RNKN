@@ -477,6 +477,9 @@ public class IPPacket implements Packet {
 	public static final byte UDPLITE_PROTOCOL = (byte) 136; // UDPLite RFC 3828
 
 	public static final byte MPLS_IN_IP_PROTOCOL = (byte) 137; // MPLS_in_IP
+	
+	public static final byte RUDP_PROTOCOL = (byte) 167; // MPLS_in_IP
+	
 
 	public static final byte IPv4_VERSION = 4;
 

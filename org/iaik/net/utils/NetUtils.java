@@ -800,4 +800,23 @@ public class NetUtils {
 		
 		return (short)((~sum) & 0xFFFF);
 	}
+	
+	public static boolean isValidIP(String ip)
+	{
+		int decimal;
+		String[] bytes = ip.split("\\.");
+		
+		if(bytes.length != 4)
+			return false;
+		
+		for(String s : bytes)
+		{
+			decimal = Integer.parseInt(s);
+			
+			if(decimal < 0 || decimal > 255)
+				return false;
+		}
+		
+		return true;
+	}
 }

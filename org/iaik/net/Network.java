@@ -60,12 +60,12 @@ public class Network {
 
 	private static Log log = LogFactory.getLog(Network.class);
 
-	public static void start(Properties properties, String ipAddr, String macAddr, String captureFilter) throws NetworkException {
+	public static void start(Properties properties, String ipAddr, String macAddr,String gate, String mask, String captureFilter) throws NetworkException {
 
 		ip = ipAddr;
 		mac = macAddr;
-		netmask = null;
-		gateway = null;
+		netmask = mask;
+		gateway = gate;
 
 		linklayer = LinkLayerFactory.createInstance(properties);
 
