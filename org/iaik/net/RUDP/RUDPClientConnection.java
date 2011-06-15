@@ -13,6 +13,8 @@ import org.iaik.net.packets.IPPacket;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.iaik.net.exceptions.RUDPException;
+import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPClientCallback;
 import org.iaik.net.packets.rudp.*;
 
@@ -56,7 +58,7 @@ public class RUDPClientConnection extends RUDPConnection {
 	/**
 	 * connects to the specified server.
 	 */
-	public void connect()
+	public void connect() throws RUDPException
 	{
 		int connectTry;
 		
@@ -92,7 +94,7 @@ public class RUDPClientConnection extends RUDPConnection {
 					
 					//TODO:additional checks necessary!!!
 					
-					if(synAckReceived.getAck_num() == lastSequenceNrSent)
+					if(connectTimeoutReached || synAckReceived.getAck_num() == lastSequenceNrSent)
 						break;
 				}
 			} catch (InterruptedException e) {
@@ -113,6 +115,16 @@ public class RUDPClientConnection extends RUDPConnection {
 			//SYNACK received, so Send ACK:
 			
 			state = ClientState.Connected;
+		}
+		
+		if(state != ClientState.Connected)
+		{
+			log.debug("failed to connect to server after " + maxConnectRetries + " tries");
+			throw new RUDPException("failed to connect to server after " + maxConnectRetries + " tries");
+		}
+		else
+		{
+			TransportLayerFactory.getInstance().addRUDPConnection(this);
 		}
 	}
 	
