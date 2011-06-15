@@ -7,6 +7,28 @@ public class RUDP_ACKPacket extends RUDPPacket {
 
 	byte advertised_window_size;
 	
+	
+	public RUDP_ACKPacket(short dest_port, short src_port, byte seq_num, byte ack_num,
+			              byte advertised_window_size)
+	{
+      this.ack = true;
+      this.syn = false;
+	  this.eak = false;
+	  this.rst = false;
+	  this.nul = false;
+	  
+	  this.packet_length = 11;
+	  this.dest_port = dest_port;
+	  this.src_port = src_port;
+	  
+	  this.seq_num = seq_num;
+	  this.ack_num = ack_num;
+	  
+	  this.advertised_window_size = advertised_window_size;
+	}
+	
+	
+	
 	private RUDP_ACKPacket(byte[] packet) throws PacketParsingException
 	{
 		  
@@ -31,6 +53,9 @@ public class RUDP_ACKPacket extends RUDPPacket {
 	{
       return new RUDP_ACKPacket(packet);		
 	}
+	
+	
+
 	
 	@Override
 	public String getInfo() {
@@ -70,7 +95,7 @@ public class RUDP_ACKPacket extends RUDPPacket {
         
 		this.checksum = calc_checksum;
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 22);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 8);
 		
 		return pkg;
 	}
