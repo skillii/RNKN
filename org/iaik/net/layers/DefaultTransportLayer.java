@@ -2,6 +2,8 @@ package org.iaik.net.layers;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.iaik.net.RUDP.*;
 import org.iaik.net.exceptions.*;
 import org.iaik.net.interfaces.*;
@@ -12,6 +14,7 @@ public class DefaultTransportLayer implements TransportLayer {
 
 	private Properties properties;
 	InternetLayer internetLayer;
+	private Log log;
 	
 	Vector<RUDPConnection> connections;
 	
@@ -27,10 +30,13 @@ public class DefaultTransportLayer implements TransportLayer {
 	@Override
 	public void init() throws NetworkException {
 		connections = new Vector<RUDPConnection>();
+		log = LogFactory.getLog(this.getClass());
 	}
 
 	@Override
 	public void process(IPPacket packet) {
+		log.debug("incoming packet, protocol:" + packet.getProtocol());
+		
 		if(packet.getProtocol() == IPPacket.RUDP_PROTOCOL)
 		{
 			//TODO: packet parsing stuff...

@@ -151,7 +151,7 @@ public class TestConnect {
 							}
 							else
 							{
-								destinationAddress = "192.168.56.106";//st.nextToken();
+								destinationAddress = "192.168.57.2";//st.nextToken();
 								
 								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
 								{

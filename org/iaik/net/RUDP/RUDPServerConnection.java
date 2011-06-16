@@ -128,6 +128,7 @@ public class RUDPServerConnection extends RUDPConnection {
 
 	@Override
 	protected void connectPhasePacketReceived(RUDPPacket packet) {
+		log.debug("received a Packet");
 		if(packet instanceof RUDP_SYNPacket)
 		{
 			connectConditionLock.lock();
