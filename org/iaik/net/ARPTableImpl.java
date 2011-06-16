@@ -62,7 +62,7 @@ public class ARPTableImpl implements ARPTable{
 				{
 					list.elementAt(i).setMACAddress(e.getMACAddress());					//update the MAC-Address
 					list.elementAt(i).setValid(true);
-					System.out.print("Updated a MAC-Address for an existing IP\n\n");
+					//System.out.print("Updated a MAC-Address for an existing IP\n\n");
 					return;
 				}
 			}
@@ -70,12 +70,12 @@ public class ARPTableImpl implements ARPTable{
 			{
 				list.elementAt(i).setIPAddress(e.getIPAddress());							//update the IP-Address
 				list.elementAt(i).setValid(true);
-				System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
+				//System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
 				return;
 			}
 			i++;				
 		}
-		System.out.print("New ARPEntry added by ARPPacket\n\n");
+		//System.out.print("New ARPEntry added by ARPPacket\n\n");
 		list.add(e);
 	
 			

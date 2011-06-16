@@ -102,7 +102,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 				transportLayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
 			}
 			catch (Exception e) {
-				System.out.println(e.getMessage());
+				log.debug(e.getMessage());
 			}
 			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
 			TransportLayerFactory.getInstance().setInternetLayer((InternetLayer)transportLayer);
@@ -254,7 +254,6 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void send(Packet packet) {
 		if (packet instanceof ARPPacket) {
-
 			sendBuffer.add(EthernetPacket.createEthernetPacket(EthernetPacket.ETHERTYPE_ARP, Network.mac, ((ARPPacket) packet)
 					.getTargetHardwareAddress(), packet.getPacket()));
 
@@ -344,7 +343,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		
 		if(packet.getOperationCode() == ARPPacket.ARP_REQUEST)
 		{			
-			System.out.println("Begin of process ARP method\n");
+			log.debug("Begin of process ARP method\n");
 			Properties pts = this.getProperties();
 		
 	
@@ -354,7 +353,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	                                                    packet.getSenderHardwareAddress(), 
 	                                                    packet.getSenderProtocolAddress());
 	
-		    System.out.println("ARP REPLY SENT\n");
+		    log.debug("ARP REPLY SENT\n");
 		    
 		    this.send(reply);
 		}
@@ -402,13 +401,13 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		
 		if(!isValid(packet))
 		{
-			System.out.println("Received an invalid IP package!");
+			log.debug("Received an invalid IP package!");
 			return;
 		}
 		
-		System.out.println("Received a packet:");
+		log.debug("Received a packet:");
 		if(packet.getProtocol() == IPPacket.ICMP_PROTOCOL) {
-			System.out.println("    Received an ICMP packet!!!");
+			log.debug("    Received an ICMP packet!!!");
 			
 			ICMPPacket icmp;
 			
@@ -420,13 +419,13 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			}
 			catch(PacketParsingException ex)
 			{
-				System.out.println("ICMP packet contained errors:" + ex.getMessage());
+				log.debug("ICMP packet contained errors:" + ex.getMessage());
 				return;
 			}
 			
 			if(!icmp.isValid())
 			{
-				System.out.println("Received an invalid ICMP package!");
+				log.debug("Received an invalid ICMP package!");
 				return;
 			}
 			

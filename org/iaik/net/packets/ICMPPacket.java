@@ -173,7 +173,7 @@ public class ICMPPacket implements Packet {
 		else
 			chkSumValid = false;
 		
-		System.out.println("ICMP chksum:" + NetUtils.toHexString(sum));
+		//System.out.println("ICMP chksum:" + NetUtils.toHexString(sum));
 	}
 
 	private ICMPPacket(byte type, byte code, short identifier, short sequenceNumber, byte[] payload) {
