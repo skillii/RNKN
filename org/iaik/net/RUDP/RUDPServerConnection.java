@@ -3,10 +3,17 @@ package org.iaik.net.RUDP;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.iaik.net.Network;
 import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPServerCallback;
 import org.iaik.net.interfaces.TransportLayer;
+import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
 
 
@@ -16,14 +23,20 @@ public class RUDPServerConnection extends RUDPConnection {
 	private RUDPServerCallback serverCallback;
 	private boolean connectTimeoutReached;
 	private int connectTimeoutms = 1000;
-	private Semaphore connectSem;
+	private Condition connectCondition;
+	private Lock connectConditionLock;
 	private RUDPPacket connectPacket;
+	private Log log;
 	
 	public RUDPServerConnection(int port, RUDPServerCallback callback) {
 		super(port, callback);
 		state = ServerState.Closed;
 
-		connectSem = new Semaphore(0);
+		connectConditionLock = new ReentrantLock();
+		connectCondition = connectConditionLock.newCondition();
+		
+		
+		log = LogFactory.getLog(this.getClass());
 	}
 	
 
@@ -34,16 +47,28 @@ public class RUDPServerConnection extends RUDPConnection {
 
 	@Override
 	protected void connectPhase() {
+		RUDPPacket rudpPack;
+		IPPacket rudpPackIP;		
+		
 		//Wait for an incoming SYN-Request
+		log.debug("waiting for incoming connection");
 		try {
-			connectSem.acquire();
+			connectConditionLock.lock();
+			connectCondition.await();
+			connectConditionLock.unlock();
+			
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
+		
 		//Send SYNACK:
 		lastSequenceNrSent = 123;
+		rudpPack = new RUDP_SYNPacket(true, (byte)lastSequenceNrSent, (byte)0, (short)remotePort, (short)port, new byte[1]);
+		
+		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
+		transportLayer.sendPacket(rudpPackIP);
+		log.debug("sending SYNACK");
 
 		//Wait for ACK
 		Timer connectTimer = new Timer();
@@ -52,7 +77,9 @@ public class RUDPServerConnection extends RUDPConnection {
 		try {
 			while(true)
 			{
-				connectSem.acquire();
+				connectConditionLock.lock();
+				connectCondition.await();
+				connectConditionLock.unlock();
 				
 				//TODO:additional checks necessary!!!
 				if(connectPacket.getAck_num() == lastSequenceNrSent)
@@ -103,9 +130,12 @@ public class RUDPServerConnection extends RUDPConnection {
 	protected void connectPhasePacketReceived(RUDPPacket packet) {
 		if(packet instanceof RUDP_SYNPacket)
 		{
+			connectConditionLock.lock();
 			//Some checks ...
 			connectPacket = packet;
-			connectSem.release();
+			log.debug("received SYN Packet");
+			connectCondition.signal();
+			connectConditionLock.unlock();
 
 		}
 	}
@@ -115,8 +145,11 @@ public class RUDPServerConnection extends RUDPConnection {
 
 		@Override
 		public void run() {
+			
+			connectConditionLock.lock();
 			connectTimeoutReached = true;
-			connectSem.release();
+			connectCondition.signal();
+			connectConditionLock.unlock();
 		}
 	}
 }
