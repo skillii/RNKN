@@ -96,6 +96,7 @@ public class LinkLayerFactory {
 		try {
 			LinkLayer linklayer = (LinkLayer) Class.forName(properties.getProperty("linklayer")).newInstance();
 
+
 			LinkLayerFactory.linklayer = linklayer;
 
 			linklayer.setProperties(properties);

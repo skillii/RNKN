@@ -36,6 +36,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.interfaces.TransportLayer;
+import org.iaik.net.interfaces.InternetLayer;
 import org.iaik.net.layers.DefaultInternetLayer;
 
 /**
@@ -93,10 +94,12 @@ public class TransportLayerFactory {
 	 */
 	public static TransportLayer createInstance(Properties properties) throws NetworkException {
 
+		
 		TransportLayerFactory.properties = properties;
 
 		try {
-			TransportLayer transportlayer = (TransportLayer) Class.forName(properties.getProperty("transportlayer")).newInstance();
+			TransportLayer transportlayer;
+			transportlayer = (TransportLayer) Class.forName(properties.getProperty("transportlayer")).newInstance();
 
 			TransportLayerFactory.transportlayer = transportlayer;
 

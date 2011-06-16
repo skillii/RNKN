@@ -90,6 +90,14 @@ public class NetworkBuffer {
 			log.info("Packet " + p.getInfo() + " removed from the buffer!");
 		}
 	}
+	
+	public void remove(int index) {
+		synchronized (bufferMonitor) {
+			if (!buffer.isEmpty())
+				buffer.remove(index);
+			log.info("Packet " + index + " removed from the buffer!");
+		}
+	}
 
 	public int getSize() {
 		return buffer.size();

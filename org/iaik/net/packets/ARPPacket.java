@@ -119,10 +119,10 @@ public class ARPPacket implements Packet {
 		new_p.spa = spa;
 		new_p.tha = tha;
 		new_p.tpa = tpa;
-		new_p.hlen = new_p.HLEN;
-		new_p.plen = new_p.PLEN;
-		new_p.htype = new_p.HTYPE_ETHERNET;
-		new_p.ptype = new_p.PTYPE_IP;
+		new_p.hlen = ARPPacket.HLEN;
+		new_p.plen = ARPPacket.PLEN;
+		new_p.htype = ARPPacket.HTYPE_ETHERNET;
+		new_p.ptype = ARPPacket.PTYPE_IP;
 		new_p.timeout = 45000;
 		
 		return new_p;
