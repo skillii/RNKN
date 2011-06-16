@@ -231,7 +231,8 @@ public class RUDP_SYNPacket extends RUDPPacket {
 		if(this.ack)
 		  header_identifier += 64;
 		
-		NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
+		pkg[0] = (byte)header_identifier;
+		//NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
         pkg[1] = this.packet_length;
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);

@@ -67,6 +67,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	protected NetworkBuffer receiveBuffer;
 
 	private NetworkBuffer sendBuffer;
+	
+	private NetworkBuffer arpWaitBuffer;
 
 	private PhysicalSender sender;
 
@@ -87,6 +89,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		log = LogFactory.getLog(this.getClass());
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
+		arpWaitBuffer = new NetworkBuffer();
+		
 		arpTable = new ARPTableImpl();
 	}
 
@@ -274,7 +278,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 					if (packet.getTimeout() == 0)
 						packet.setTimeout(System.currentTimeMillis());
 
-					receiveBuffer.add(packet);
+					//receiveBuffer.add(packet);
+					arpWaitBuffer.add(packet);
 					log.info("Destination address couldn't be resolved: " + ((IPPacket) packet).getDestinationAddress());
 
 					yield();
@@ -337,23 +342,52 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void processARP(ARPPacket packet) {
 		
-		System.out.println("Begin of process ARP method\n");
-		Properties pts = this.getProperties();
-	
-
-		ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
-					                                pts.getProperty("mac-address") ,
-                                                    pts.getProperty("ip-address"), 
-                                                    packet.getSenderHardwareAddress(), 
-                                                    packet.getSenderProtocolAddress());
-
-	    System.out.println("ARP REPLY SENT\n");
-	    
-	    this.send(reply);
-	
+		if(packet.getOperationCode() == ARPPacket.ARP_REQUEST)
+		{			
+			System.out.println("Begin of process ARP method\n");
+			Properties pts = this.getProperties();
 		
-		
+	
+			ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
+						                                pts.getProperty("mac-address") ,
+	                                                    pts.getProperty("ip-address"), 
+	                                                    packet.getSenderHardwareAddress(), 
+	                                                    packet.getSenderProtocolAddress());
+	
+		    System.out.println("ARP REPLY SENT\n");
+		    
+		    this.send(reply);
+		}
+		else if(packet.getOperationCode() == ARPPacket.ARP_REPLY)
+		{
+			log.debug("checking if we can send a new packet now!");
+			//we've got a new arp entry, so check arpWaitBuffer
+			for(int i = 0; i < arpWaitBuffer.getSize(); i++)
+			{
+				if(arpWaitBuffer.get(i) instanceof IPPacket)
+				{
+					IPPacket ipPacket = (IPPacket)arpWaitBuffer.get(i);
+					
+					String ip = ipPacket.getDestinationAddress();
+					if(!isSameSubnet(ip))
+						ip = Network.gateway;
+					
+					if(arpTable.resolveIPAddress(ip) != null)
+					{
+						send(ipPacket);
+					}
+					else
+					{
+						//TODO: check timeout!!!
+					}
+				}
+			}
+		}
 	}
+	
+	
+	
+	
 	/**
 	 * Processes an received IP packet. If the IP packet contains an ICMP, IGMP
 	 * or OSPF packet they are processed directly in this function. A response
@@ -416,7 +450,10 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		}
 		else
 		{
-			transportLayer.process(packet);
+			if(Network.ip.equals(packet.getDestinationAddress()))
+			{
+				transportLayer.process(packet);
+			}
 		}
 	}
 
@@ -484,7 +521,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	}
 	
 	public void ARPRequest(String ipAddress) {
-	System.out.println("Begin of ARP-Request method\n");
+		log.debug("Begin of ARP-Request method\n");
 	Properties pts = this.getProperties();
 
 
@@ -494,7 +531,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
                                                 "FF:FF:FF:FF:FF:FF", 
                                                 ipAddress);
 
-    System.out.println("ARP-Request SENT\n");
+    log.debug("ARP-Request SENT\n");
     
     this.send(request);
 	}

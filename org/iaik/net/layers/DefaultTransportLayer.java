@@ -41,23 +41,31 @@ public class DefaultTransportLayer implements TransportLayer {
 		{
 			//TODO: packet parsing stuff...
 			
-			int port = 0;
+			RUDPPacket rudpPacket;
 			
-			for(int i = 0; i < connections.size(); i++)
+			try {
+				rudpPacket = RUDPPacket.parsePacket(packet.getPayload());
+			} catch (PacketParsingException e) {
+				log.warn("failed to parse packet!");
+				e.printStackTrace();
+				return;
+			}
+			
+			int port = rudpPacket.getDest_port();
+			
+			int i;
+			for(i = 0; i < connections.size(); i++)
 			{
 				if(connections.get(i).getPort() == port)
 				{
-					RUDPPacket rudpPacket;
-					try {
-						rudpPacket = RUDPPacket.parsePacket(packet.getPayload());
-					} catch (PacketParsingException e) {
-						//TODO: what should we dooo????
-						e.printStackTrace();
-						return;
-					}
-					connections.get(i).packetReceived(rudpPacket);
+					log.debug("found a connection for that incoming packet");
+					connections.get(i).packetReceived(rudpPacket, packet.getSourceAddress());
+					break;
 				}
 			}
+			
+			if(i == connections.size())
+				log.warn("found no connection for that incoming packet, port: " + rudpPacket.getDest_port());
 		}
 	}
 

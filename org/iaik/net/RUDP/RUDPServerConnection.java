@@ -64,7 +64,7 @@ public class RUDPServerConnection extends RUDPConnection {
 		
 		//Send SYNACK:
 		lastSequenceNrSent = 123;
-		rudpPack = new RUDP_SYNPacket(true, (byte)lastSequenceNrSent, (byte)0, (short)remotePort, (short)port, new byte[1]);
+		rudpPack = new RUDP_SYNPacket(true, (byte)lastSequenceNrSent, (byte)connectPacket.getAck_num(), (short)remotePort, (short)port);
 		
 		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 		transportLayer.sendPacket(rudpPackIP);
@@ -127,13 +127,15 @@ public class RUDPServerConnection extends RUDPConnection {
 
 
 	@Override
-	protected void connectPhasePacketReceived(RUDPPacket packet) {
+	protected void connectPhasePacketReceived(RUDPPacket packet, String srcIP) {
 		log.debug("received a Packet");
 		if(packet instanceof RUDP_SYNPacket)
 		{
 			connectConditionLock.lock();
 			//Some checks ...
 			connectPacket = packet;
+			remoteIP = srcIP;
+			
 			log.debug("received SYN Packet");
 			connectCondition.signal();
 			connectConditionLock.unlock();
