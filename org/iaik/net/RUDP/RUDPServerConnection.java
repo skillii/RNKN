@@ -22,7 +22,7 @@ public class RUDPServerConnection extends RUDPConnection {
 
 	private RUDPServerCallback serverCallback;
 	private boolean connectTimeoutReached;
-	private int connectTimeoutms = 3000;
+	private int connectTimeoutms = 5000;
 	private Condition connectCondition;
 	private Lock connectConditionLock;
 	private RUDPPacket connectPacket;
@@ -35,7 +35,7 @@ public class RUDPServerConnection extends RUDPConnection {
 		connectConditionLock = new ReentrantLock();
 		connectCondition = connectConditionLock.newCondition();
 		
-		
+		this.serverCallback = callback;
 		log = LogFactory.getLog(this.getClass());
 	}
 	
@@ -66,7 +66,7 @@ public class RUDPServerConnection extends RUDPConnection {
 		
 		//Send SYNACK:
 		lastSequenceNrSent = 123;
-		rudpPack = new RUDP_SYNPacket(true, (byte)lastSequenceNrSent, (byte)(connectPacket.getSeq_num()+1), (short)remotePort, (short)port);
+		rudpPack = new RUDP_SYNPacket(true, (byte)(lastSequenceNrSent), (byte)(connectPacket.getSeq_num()), (short)remotePort, (short)port);
 		
 		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 		transportLayer.sendPacket(rudpPackIP);
@@ -84,8 +84,10 @@ public class RUDPServerConnection extends RUDPConnection {
 				connectCondition.await();
 				
 				//TODO:additional checks necessary!!!
-				if(connectTimeoutReached || connectPacket.getAck_num() == lastSequenceNrSent)
+				if(connectTimeoutReached || connectPacket.getAck_num() == (lastSequenceNrSent))
 					break;
+				else if(connectPacket.getAck_num() != lastSequenceNrSent)
+					log.warn("received packet with invalid ack-nr(" + connectPacket.getAck_num() + ") instead of " + (lastSequenceNrSent));
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -156,10 +158,8 @@ public class RUDPServerConnection extends RUDPConnection {
 		{
 			//Some checks ...
 			connectPacket = packet;
-			remoteIP = srcIP;
-			remotePort = connectPacket.getSrc_port();
 			
-			log.debug("received SYN Packet");
+			log.debug("received ACK Packet");
 			connectCondition.signal();
 		}
 		connectConditionLock.unlock();

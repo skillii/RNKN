@@ -76,7 +76,7 @@ public class RUDP_DTAPacket extends RUDPPacket {
 		
 		int header_identifier = 0;
 		
-		NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
+		pkg[0] = (byte)header_identifier;
         pkg[1] = this.packet_length;
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);

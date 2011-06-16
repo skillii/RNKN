@@ -96,10 +96,10 @@ public class RUDPClientConnection extends RUDPConnection {
 					
 					//TODO:additional checks necessary!!!
 					
-					if(connectTimeoutReached || synAckReceived.getAck_num() == (lastSequenceNrSent+1))
+					if(connectTimeoutReached || synAckReceived.getAck_num() == (lastSequenceNrSent))
 						break;
 					else if(synAckReceived.getAck_num() != lastSequenceNrSent)
-						log.warn("received packet with invalid seq-nr(" + synAckReceived.getAck_num() + ") instead of " + (lastSequenceNrSent+1));
+						log.warn("received packet with invalid ack-nr(" + synAckReceived.getAck_num() + ") instead of " + (lastSequenceNrSent+1));
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -119,7 +119,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			//SYNACK received, so Send ACK:
 			//TODO: calculate advertised window size
-			rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)(++lastSequenceNrSent), (byte)(synAckReceived.getSeq_num()+1), (byte)5);
+			rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)(++lastSequenceNrSent), (byte)(synAckReceived.getSeq_num()), (byte)5);
 			
 			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 			transportLayer.sendPacket(rudpPackIP);

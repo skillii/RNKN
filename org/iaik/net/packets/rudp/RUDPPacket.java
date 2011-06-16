@@ -123,6 +123,14 @@ public abstract class RUDPPacket implements Packet {
 	    //We got a SYN Packet here
 		return RUDP_SYNPacket.createSYNPacket(packet);
 	  }
+	  else  if((identifier & 0x40) != 0)
+	  {
+		  return RUDP_ACKPacket.createACKPacket(packet);
+	  }
+	  else if(identifier == 0)
+	  {
+		  return RUDP_DTAPacket.createDTAPacket(packet);
+	  }
 		  
       //TODO: Insert the rest of the packages here  
 		  
