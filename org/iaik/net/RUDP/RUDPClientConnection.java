@@ -70,7 +70,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			log.debug("connecting to client... try: " + connectTry);
 			//Send SYN:
 			lastSequenceNrSent = 123;
-			rudpPack = new RUDP_SYNPacket(false, (byte)lastSequenceNrSent, (byte)0, (short)remotePort, (short)port, new byte[1]);
+			rudpPack = new RUDP_SYNPacket(false, (byte)lastSequenceNrSent, (byte)0, (short)remotePort, (short)port);
 			
 			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 			transportLayer.sendPacket(rudpPackIP);

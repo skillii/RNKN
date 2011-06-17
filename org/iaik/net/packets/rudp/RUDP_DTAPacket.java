@@ -12,7 +12,7 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	public RUDP_DTAPacket(short dest_port,short src_port, byte[] payload, byte seq_num,
 			              byte ack_num)
 	{
-      this.ack = true;
+      this.ack = false;
 	  this.syn = false;
 	  this.eak = false;
 	  this.rst = false;
@@ -40,11 +40,21 @@ public class RUDP_DTAPacket extends RUDPPacket {
       this.seq_num = packet[6];
       this.ack_num = packet[7];
       
-      this.checksum = NetUtils.bytesToShort(packet, 8);
-      
       this.payload = new byte[packet.length - 10];
       System.arraycopy(packet, 10, this.payload, 0, packet.length - 10);
+      
+      short checksum_should = NetUtils.bytesToShort(packet, 8);   
+      
+      packet[8] = 0;
+      packet[9] = 0;
+      
+      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
+      
+      if(checksum_should != calc_checksum)
+        throw new PacketParsingException("Checksum failed!");
 		
+      
+      this.checksum = calc_checksum;
 		
 	}
 	

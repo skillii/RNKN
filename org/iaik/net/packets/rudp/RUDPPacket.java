@@ -23,8 +23,6 @@ public abstract class RUDPPacket implements Packet {
 	boolean rst;
 	boolean nul;
 
-	
-	
     //bytes - 8 bit
  	byte packet_length;
 	byte seq_num;
@@ -51,17 +49,31 @@ public abstract class RUDPPacket implements Packet {
 	{
 	  byte identifier = packet[0];
 	  
-	  
+	  //SYN Packet
 	  if((identifier & 0x80) == 1)
 	  {
-	    //We got a SYN Packet here
 		return RUDP_SYNPacket.createSYNPacket(packet);
 	  }
-		  
-      //TODO: Insert the rest of the packages here  
+	  
+	  //RST Packet
+	  if((identifier & 0x10) == 1)
+	  {
+		return RUDP_RSTPacket.createRSTPacket(packet);  
+	  }
+	  
+	  //NUL Packet
+	  if((identifier & 0x08) == 1)
+	  {
+		return RUDP_NULPacket.createNULPacket(packet);
+	  }
+		
+	  if((identifier & 0x40) == 1)
+	  {
+	    return RUDP_ACKPacket.createACKPacket(packet);
+	  }  
 		  
 	 	
-	  return null;	
+	  return RUDP_DTAPacket.createDTAPacket(packet);	
 	}
 
 }
