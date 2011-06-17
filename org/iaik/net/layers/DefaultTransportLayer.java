@@ -2,6 +2,8 @@ package org.iaik.net.layers;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.iaik.net.RUDP.*;
 import org.iaik.net.exceptions.*;
 import org.iaik.net.interfaces.*;
@@ -12,6 +14,7 @@ public class DefaultTransportLayer implements TransportLayer {
 
 	private Properties properties;
 	InternetLayer internetLayer;
+	private Log log;
 	
 	Vector<RUDPConnection> connections;
 	
@@ -27,31 +30,42 @@ public class DefaultTransportLayer implements TransportLayer {
 	@Override
 	public void init() throws NetworkException {
 		connections = new Vector<RUDPConnection>();
+		log = LogFactory.getLog(this.getClass());
 	}
 
 	@Override
 	public void process(IPPacket packet) {
+		log.debug("incoming packet, protocol:" + packet.getProtocol());
+		
 		if(packet.getProtocol() == IPPacket.RUDP_PROTOCOL)
 		{
 			//TODO: packet parsing stuff...
 			
-			int port = 0;
+			RUDPPacket rudpPacket;
 			
-			for(int i = 0; i < connections.size(); i++)
+			try {
+				rudpPacket = RUDPPacket.parsePacket(packet.getPayload());
+			} catch (PacketParsingException e) {
+				log.warn("failed to parse packet!");
+				e.printStackTrace();
+				return;
+			}
+			
+			int port = rudpPacket.getDest_port();
+			
+			int i;
+			for(i = 0; i < connections.size(); i++)
 			{
 				if(connections.get(i).getPort() == port)
 				{
-					RUDPPacket rudpPacket;
-					try {
-						rudpPacket = RUDPPacket.parsePacket(packet.getPayload());
-					} catch (PacketParsingException e) {
-						//TODO: what should we dooo????
-						e.printStackTrace();
-						return;
-					}
-					connections.get(i).packetReceived(rudpPacket);
+					log.debug("found a connection for that incoming packet");
+					connections.get(i).packetReceived(rudpPacket, packet.getSourceAddress());
+					break;
 				}
 			}
+			
+			if(i == connections.size())
+				log.warn("found no connection for that incoming packet, port: " + rudpPacket.getDest_port());
 		}
 	}
 

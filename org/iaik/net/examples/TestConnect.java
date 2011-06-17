@@ -40,9 +40,13 @@ import java.util.StringTokenizer;
 import org.iaik.net.Network;
 import org.iaik.net.RUDP.RUDPClientConnection;
 import org.iaik.net.RUDP.RUDPConnection;
+import org.iaik.net.RUDP.RUDPServerConnection;
 import org.iaik.net.exceptions.NetworkException;
+import org.iaik.net.exceptions.RUDPException;
 import org.iaik.net.factories.InternetLayerFactory;
+import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPClientCallback;
+import org.iaik.net.interfaces.RUDPServerCallback;
 import org.iaik.net.layers.DefaultInternetLayer;
 import org.iaik.net.layers.JPcapPhysicalSender;
 import org.iaik.net.packets.ICMPPacket;
@@ -147,31 +151,77 @@ public class TestConnect {
 							}
 							else
 							{
-								destinationAddress = "192.168.56.1";//st.nextToken();
+								destinationAddress = "192.168.57.2";//st.nextToken();
 								
 								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
 								{
-									RUDPClientConnection clientConnection = new RUDPClientConnection(5000, "192.168.56.100", 25000, new
+									RUDPClientConnection clientConnection = new RUDPClientConnection(5000, destinationAddress, 25000, new
 											RUDPClientCallback() {
 												
 												@Override
 												public void DataReceived() {
-													// TODO Auto-generated method stub
-													
 												}
 												
 												@Override
 												public void ConnectionClosed() {
-													// TODO Auto-generated method stub
 													
 												}
 											});
 									
-									//try
+									try
 									{
 										clientConnection.connect();
 									}
-
+									catch(RUDPException ex)
+									{
+										System.out.println("failed to connect: " + ex.getMessage());
+									}
+								}
+								else
+								{
+									System.out.println("hey, the IP you gave me is not valid! shame on you!");
+								}
+							}
+						}
+						else if(command.equals("s"))
+						{
+							RUDPServerConnection serverConnection = new RUDPServerConnection(25000, new RUDPServerCallback() {
+								
+								@Override
+								public void DataReceived() {
+								}
+								
+								@Override
+								public void ConnectionClosed() {
+									System.out.println("Connection closed by remote...");
+								}
+								
+								@Override
+								public void clientConnected(String ip) {
+									System.out.println("client with ip " + ip + "connected...");
+								}
+							});
+							
+							serverConnection.startServer();
+						}
+						else if(command.equals("ping"))  // executes a ping request
+						{
+							if(st.countTokens() != 1)
+							{
+								System.out.println("oops, you gave me too much or too less arguments! usage: ping <ip-address>");
+							}
+							else
+							{
+								destinationAddress = st.nextToken();
+								
+								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
+								{
+									//do the ping!
+									PingSender.getInstance().sendPing(destinationAddress);
+//									ICMPPacket icmprequest = ICMPPacket.createICMPPacket(ICMPPacket.ECHO_REQUEST, (byte)0, (short)0, (short)0, new byte[] {42, 42, 42, 42, 42, 42, 42, 42});
+//									IPPacket iprequest = IPPacket.createDefaultIPPacket(IPPacket.ICMP_PROTOCOL, (short)0, Network.ip, destinationAddress, icmprequest.getPacket());
+//									InternetLayerFactory.getInstance().send(iprequest);
+//									System.out.println("#### Sent ICMP Echo Request Packet to " + destinationAddress);
 								}
 								else
 								{

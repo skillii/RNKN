@@ -44,6 +44,7 @@ public class RUDP_ACKPacket extends RUDPPacket {
 		  
 	      this.seq_num = packet[6];
 	      this.ack_num = packet[7];
+	      System.out.println("ack nr:" + ack_num);
 
 	      this.advertised_window_size = packet[8];
 	      
@@ -90,7 +91,7 @@ public class RUDP_ACKPacket extends RUDPPacket {
 		
 		int header_identifier = 64;
 		
-		NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
+		pkg[0] = (byte)header_identifier;
         pkg[1] = this.packet_length;
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
