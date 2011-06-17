@@ -17,19 +17,108 @@ public class RUDP_SYNPacket extends RUDPPacket {
 	byte max_outstanding_seg;
 	short max_segment_size;
 	
-	byte[] payload;
 	
+	public short getRetransmission_timeout() {
+		return retransmission_timeout;
+	}
+
+
+	public void setRetransmission_timeout(short retransmissionTimeout) {
+		retransmission_timeout = retransmissionTimeout;
+	}
+
+
+	public short getCumulative_ack_timeout() {
+		return cumulative_ack_timeout;
+	}
+
+
+	public void setCumulative_ack_timeout(short cumulativeAckTimeout) {
+		cumulative_ack_timeout = cumulativeAckTimeout;
+	}
+
+
+	public short getNull_segment_timeout() {
+		return null_segment_timeout;
+	}
+
+
+	public void setNull_segment_timeout(short nullSegmentTimeout) {
+		null_segment_timeout = nullSegmentTimeout;
+	}
+
+
+	public short getNull_receipt_timeout() {
+		return null_receipt_timeout;
+	}
+
+
+	public void setNull_receipt_timeout(short nullReceiptTimeout) {
+		null_receipt_timeout = nullReceiptTimeout;
+	}
+
+
+	public byte getMax_retrans() {
+		return max_retrans;
+	}
+
+
+	public void setMax_retrans(byte maxRetrans) {
+		max_retrans = maxRetrans;
+	}
+
+
+	public byte getMax_cum_ack() {
+		return max_cum_ack;
+	}
+
+
+	public void setMax_cum_ack(byte maxCumAck) {
+		max_cum_ack = maxCumAck;
+	}
+
+
+	public byte getMax_out_of_seq() {
+		return max_out_of_seq;
+	}
+
+
+	public void setMax_out_of_seq(byte maxOutOfSeq) {
+		max_out_of_seq = maxOutOfSeq;
+	}
+
+
+	public byte getMax_outstanding_seg() {
+		return max_outstanding_seg;
+	}
+
+
+	public void setMax_outstanding_seg(byte maxOutstandingSeg) {
+		max_outstanding_seg = maxOutstandingSeg;
+	}
+
+
+	public short getMax_segment_size() {
+		return max_segment_size;
+	}
+
+
+	public void setMax_segment_size(short maxSegmentSize) {
+		max_segment_size = maxSegmentSize;
+	}
+
+
+
 	/***
 	 * Parses a received packet back into a RUDP_SYNPacket object
 	 * 
 	 * @param packet The packet to be parsed
 	 */
-	
 	private RUDP_SYNPacket(byte[] packet) throws PacketParsingException
 	{
 	  byte identifier = packet[0];
 	  
-	  if((identifier & 0x40) == 1)
+	  if((identifier & 0x40) != 0)
 	    this.ack = true;
 	  else
 		this.ack = false;
@@ -58,9 +147,6 @@ public class RUDP_SYNPacket extends RUDPPacket {
       
       this.checksum = NetUtils.bytesToShort(packet, 22);
       
-      this.payload = new byte[packet.length - 24];
-      
-      System.arraycopy(packet, 24, payload, 0, packet.length - 24);
 		
 	}
 	
@@ -83,7 +169,7 @@ public class RUDP_SYNPacket extends RUDPPacket {
 	 * @param seq_num The sequence number for the packet
 	 * @param ack_num The acknowledgement number to be set
 	 */
-	public RUDP_SYNPacket(boolean ack, byte seq_num, byte ack_num, short dest_port, short src_port, byte[] payload)
+	public RUDP_SYNPacket(boolean ack, byte seq_num, byte ack_num, short dest_port, short src_port)
 	{
 	  this.syn = true;
 	  this.ack = ack;
@@ -97,12 +183,11 @@ public class RUDP_SYNPacket extends RUDPPacket {
 
 	  
 	  this.seq_num = seq_num;
-	  this.packet_length = Byte.parseByte(Integer.toString(24 + payload.length));
+	  this.packet_length = Byte.parseByte(Integer.toString(24));
 	  
 	  this.dest_port = dest_port;
 	  this.src_port = src_port;
-	  
-	  this.payload = payload;
+	 
 	  
 	  //TODO Find appropriate defaults
 	  
@@ -139,7 +224,6 @@ public class RUDP_SYNPacket extends RUDPPacket {
 	@Override
 	public byte[] getPacket() {
 	
-		final int offset = 3;
 		byte[] pkg = new byte[this.packet_length];
 		
 		int header_identifier = 128;
@@ -147,7 +231,9 @@ public class RUDP_SYNPacket extends RUDPPacket {
 		if(this.ack)
 		  header_identifier += 64;
 		
-		NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
+		pkg[0] = (byte)header_identifier;
+		//NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
+
         pkg[1] = this.packet_length;
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
@@ -166,8 +252,7 @@ public class RUDP_SYNPacket extends RUDPPacket {
         //Set Checksum 0 for now
         pkg[22] = 0;
         pkg[23] = 0;
-        
-        NetUtils.insertData(pkg, this.payload, 24);
+
         
         short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
         

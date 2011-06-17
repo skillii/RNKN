@@ -1,17 +1,88 @@
 package org.iaik.net.packets.rudp;
 
+import org.iaik.net.exceptions.PacketParsingException;
+import org.iaik.net.utils.NetUtils;
+
 public class RUDP_NULPacket extends RUDPPacket {
 
+	
+	
+	public RUDP_NULPacket(short src_port, short dest_port)
+	{
+      this.nul = true;
+      this.ack = true;
+ 	  this.syn = false;
+ 	  this.eak = false;
+ 	  this.rst = false;
+	
+ 	  this.packet_length = 10;
+ 	  this.seq_num = 0;
+ 	  this.ack_num = 0;
+ 	  
+ 	  this.src_port = src_port;
+ 	  this.dest_port = dest_port;
+ 	}
+	
+	private RUDP_NULPacket(byte[] packet)
+	{
+	      this.packet_length = packet[1];
+		  this.dest_port = NetUtils.bytesToShort(packet, 2);
+		  this.src_port = NetUtils.bytesToShort(packet, 4);	
+		  
+	      this.seq_num = packet[6];
+	      this.ack_num = packet[7];
+	      
+	      this.checksum = NetUtils.bytesToShort(packet, 8);     		
+	}
+	
+	
+	public static RUDPPacket createNULPacket(byte[] packet) throws PacketParsingException
+	{
+	  return new RUDP_NULPacket(packet);	
+	}
+ 	
+	
 	@Override
 	public String getInfo() {
-		// TODO Auto-generated method stub
-		return null;
+		StringBuffer info = new StringBuffer();
+		info.append("RUDP_NUL packet info:\n");
+		info.append("__________________________________________________________\n");
+		info.append("Destination Port        : " + NetUtils.toInt(this.dest_port) + "\n");
+		info.append("Source Port             : " + NetUtils.toInt(this.src_port) + "\n");
+		info.append("Checksum              : " + NetUtils.toInt(checksum) + "\n");
+		info.append("Sequence number       : " + NetUtils.toInt(this.seq_num) + "\n");
+		info.append("Ack number            : " + NetUtils.toInt(this.ack_num) + "\n");
+		info.append("__________________________________________________________\n");
+
+		return info.toString();
 	}
 
 	@Override
-	public byte[] getPacket() {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] getPacket() 
+	{
+		byte[] pkg = new byte[this.packet_length];
+		
+		int header_identifier = 72;
+		
+		pkg[0] = (byte)header_identifier;
+        pkg[1] = this.packet_length;
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
+        pkg[6] = 0;
+        pkg[7] = 0;
+    
+        //Set Checksum 0 for now
+        pkg[8] = 0;
+        pkg[9] = 0;
+ 
+          
+        short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
+        
+		this.checksum = calc_checksum;
+		
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 8);
+		
+		return pkg;
 	}
 
 	@Override

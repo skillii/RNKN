@@ -1,0 +1,70 @@
+Virtualbox - Globale Einstellungen - Netzwerk - vboxnet0 und vboxnet1 erstellen
+   vboxnet 0: subnetz 192.168.56.xxx
+   vboxnet 1: subnetz 192.168.57.xxx
+   
+Virtualbox: 2 Adapter (Host Only) zu VM hinzufügen
+   - 1 Adapter vboxnet0
+   - 1 Adapter vboxnet1
+   
+------------------------------------------------------------------------   
+In der VM:
+
+in der datei /etc/network/interfaces:
+
+iface eth0 inet dhcp
+auto eth0
+
+iface eth1 inet dhcp
+auto eth1
+   
+------------------------------------------------------------------------   
+   
+Im Hostsystem:
+ - echo 1 > /proc/sys/net/ipv4/ip_forward
+ - firewall ausstellen
+ 
+------------------------------------------------------------------------
+
+Networkstack configuration:
+
+2 verschiedene Networkconfigs:
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+	<comment>Hi</comment>	
+	<entry key="mac-address">0C:01:02:03:04:05</entry>
+	<entry key="ip-address">192.168.56.2</entry>
+	<entry key="gateway">192.168.56.1</entry>
+	<entry key="netmask">255.255.255.0</entry>
+	<!--<entry key="capture-filter">(ether dst 0C:01:02:03:04:05) or arp</entry>-->
+	<entry key="interface">0</entry>
+	<entry key="show-interfaces">true</entry>
+	<entry key="log-config">file:./res/log4j.config</entry>
+	<entry key="linklayer">org.iaik.net.layers.JPcapLinkLayer</entry>
+	<entry key="internetlayer">org.iaik.net.layers.DefaultInternetLayer</entry>
+	<entry key="fast-close">true</entry>
+	<entry key="transportlayer">org.iaik.net.layers.DefaultTransportLayer</entry>
+	<!--<entry key="transportfilterlayer">org.iaik.net.layers.BPLayer</entry>-->
+</properties>
+
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+	<comment>Hi</comment>	
+	<entry key="mac-address">0C:01:02:03:04:06</entry>
+	<entry key="ip-address">192.168.57.2</entry>
+	<entry key="gateway">192.168.57.1</entry>
+	<entry key="netmask">255.255.255.0</entry>
+	<!--<entry key="capture-filter">(ether dst 0C:01:02:03:04:05) or arp</entry>-->
+	<entry key="interface">1</entry>
+	<entry key="show-interfaces">true</entry>
+	<entry key="log-config">file:./res/log4j.config</entry>
+	<entry key="linklayer">org.iaik.net.layers.JPcapLinkLayer</entry>
+	<entry key="internetlayer">org.iaik.net.layers.DefaultInternetLayer</entry>
+	<entry key="fast-close">true</entry>
+	<entry key="transportlayer">org.iaik.net.layers.DefaultTransportLayer</entry>
+	<!--<entry key="transportfilterlayer">org.iaik.net.layers.BPLayer</entry>-->
+</properties>
+

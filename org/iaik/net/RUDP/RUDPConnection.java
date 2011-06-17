@@ -1,5 +1,7 @@
 package org.iaik.net.RUDP;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
@@ -14,10 +16,13 @@ public abstract class RUDPConnection implements Runnable {
 	protected int lastSequenceNrSent = 0;
 	protected TransportLayer transportLayer;
 	
+	private Log log;
+	
 	RUDPConnection(int port, RUDPCallback callback) {
 		this.port = port;
 		this.callback = callback;
 		transportLayer = TransportLayerFactory.getInstance();
+		log = LogFactory.getLog(this.getClass());
 	}
 	
 	/**
@@ -82,18 +87,26 @@ public abstract class RUDPConnection implements Runnable {
 	 * this is necessary, since the Client Implementation is different from the Server Implementation
 	 * during the connect phase.
 	 */
-	protected abstract void connectPhasePacketReceived(RUDPPacket packet);
+	protected abstract void connectPhasePacketReceived(RUDPPacket packet, String srcIP);
 	
 	/**
 	 * This method will be called by TransportLayer, when a new Packet for this Connection arrives.
 	 */
-	public void packetReceived(RUDPPacket packet)
+	public void packetReceived(RUDPPacket packet, String srcIP)
 	{
 		if(!isConnected())
 		{
-			connectPhasePacketReceived(packet);
+			connectPhasePacketReceived(packet, srcIP);
 		}
-			
+		else
+		{
+			if(srcIP.equals(remoteIP) == false || packet.getSrc_port() != remotePort)
+			{
+				log.warn("received packet(" + srcIP + "," + packet.getSrc_port() + ", where remoteIP(" + remoteIP + ") or remotePort(" + remotePort + "doesn't match");
+				return;
+			}
+			//TODO: process incoming packets:
+		}
 	}
 	
 	/**

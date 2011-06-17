@@ -26,7 +26,7 @@ public class ARPTableImpl implements ARPTable{
 			element = this.findEntryForIP(entry.getIPAddress());
 			if(element != null)
 			{
-				System.out.print("Updated a MAC-Address for an existing IP\n\n");
+//				System.out.print("Updated a MAC-Address for an existing IP\n\n");
 				element.setMACAddress(entry.getMACAddress());
 				return;
 			}
@@ -34,11 +34,11 @@ public class ARPTableImpl implements ARPTable{
 			element = this.findEntryForMAC(entry.getMACAddress());
 			if(element != null)
 			{
-				System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
+				//System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
 				element.setIPAddress(entry.getIPAddress());
 				return;
 			}
-			System.out.print("New ARPEntry added by ARPEntry\n\n");
+			//System.out.print("New ARPEntry added by ARPEntry\n\n");
 			list.add(entry);
 			
 		}
@@ -62,7 +62,7 @@ public class ARPTableImpl implements ARPTable{
 				{
 					list.elementAt(i).setMACAddress(e.getMACAddress());					//update the MAC-Address
 					list.elementAt(i).setValid(true);
-					System.out.print("Updated a MAC-Address for an existing IP\n\n");
+					//System.out.print("Updated a MAC-Address for an existing IP\n\n");
 					return;
 				}
 			}
@@ -70,12 +70,12 @@ public class ARPTableImpl implements ARPTable{
 			{
 				list.elementAt(i).setIPAddress(e.getIPAddress());							//update the IP-Address
 				list.elementAt(i).setValid(true);
-				System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
+				//System.out.print("Updated a IP-Address for an existing MAC-Address\n\n");
 				return;
 			}
 			i++;				
 		}
-		System.out.print("New ARPEntry added by ARPPacket\n\n");
+		//System.out.print("New ARPEntry added by ARPPacket\n\n");
 		list.add(e);
 	
 			

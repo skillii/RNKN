@@ -3,65 +3,61 @@ package org.iaik.net.packets.rudp;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.utils.NetUtils;
 
-public class RUDP_ACKPacket extends RUDPPacket {
+public class RUDP_DTAPacket extends RUDPPacket {
 
-	byte advertised_window_size;
+	
+	byte[] payload;
 	
 	
-	public RUDP_ACKPacket(short dest_port, short src_port, byte seq_num, byte ack_num,
-			              byte advertised_window_size)
+	public RUDP_DTAPacket(short dest_port,short src_port, byte[] payload, byte seq_num,
+			              byte ack_num)
 	{
       this.ack = true;
-      this.syn = false;
+	  this.syn = false;
 	  this.eak = false;
 	  this.rst = false;
-	  this.nul = false;
-	  
-	  this.packet_length = 11;
-	  this.dest_port = dest_port;
-	  this.src_port = src_port;
+	  this.nul = false;	
 	  
 	  this.seq_num = seq_num;
 	  this.ack_num = ack_num;
 	  
-	  this.advertised_window_size = advertised_window_size;
+	  this.src_port = src_port;
+	  this.dest_port = dest_port;
+	  
+	  this.payload = new byte[payload.length];
+	  System.arraycopy(payload, 0, this.payload, 0, payload.length);
+	  
+	  this.packet_length = Byte.parseByte(Integer.toString(9 + payload.length)); 
+	  
 	}
 	
-	
-	
-	private RUDP_ACKPacket(byte[] packet) throws PacketParsingException
+	private RUDP_DTAPacket(byte packet[]) throws PacketParsingException
 	{
-		  
-		  this.ack = true;
-		  this.syn = false;
-		  this.eak = false;
-		  this.rst = false;
-		  this.nul = false;
-
-		  this.packet_length = packet[1];
-		  this.dest_port = NetUtils.bytesToShort(packet, 2);
-	      this.src_port = NetUtils.bytesToShort(packet, 4);
-		  
-	      this.seq_num = packet[6];
-	      this.ack_num = packet[7];
-	      System.out.println("ack nr:" + ack_num);
-
-	      this.advertised_window_size = packet[8];
-	      this.checksum = NetUtils.bytesToShort(packet, 9);
+      this.packet_length = packet[1];
+	  this.dest_port = NetUtils.bytesToShort(packet, 2);
+	  this.src_port = NetUtils.bytesToShort(packet, 4);	
+	  
+      this.seq_num = packet[6];
+      this.ack_num = packet[7];
+      
+      this.checksum = NetUtils.bytesToShort(packet, 8);
+      
+      this.payload = new byte[packet.length - 10];
+      System.arraycopy(packet, 10, this.payload, 0, packet.length - 10);
+		
+		
 	}
 	
-	public static RUDP_ACKPacket createACKPacket(byte[] packet) throws PacketParsingException
+	
+	public static RUDP_DTAPacket createDTAPacket(byte[] packet) throws PacketParsingException
 	{
-      return new RUDP_ACKPacket(packet);		
+      return new RUDP_DTAPacket(packet);		
 	}
-	
-	
-
 	
 	@Override
 	public String getInfo() {
 		StringBuffer info = new StringBuffer();
-		info.append("RUDP_ACK packet info:\n");
+		info.append("RUDP_DTA packet info:\n");
 		info.append("__________________________________________________________\n");
 		info.append("Destination Port        : " + NetUtils.toInt(this.dest_port) + "\n");
 		info.append("Source Port             : " + NetUtils.toInt(this.src_port) + "\n");
@@ -75,9 +71,10 @@ public class RUDP_ACKPacket extends RUDPPacket {
 
 	@Override
 	public byte[] getPacket() {
-        byte[] pkg = new byte[this.packet_length];
+	
+		byte[] pkg = new byte[this.packet_length];
 		
-		int header_identifier = 64;
+		int header_identifier = 0;
 		
 		pkg[0] = (byte)header_identifier;
         pkg[1] = this.packet_length;
@@ -85,18 +82,19 @@ public class RUDP_ACKPacket extends RUDPPacket {
         NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
         pkg[6] = this.seq_num;
         pkg[7] = this.ack_num;
-
-        
+    
         //Set Checksum 0 for now
         pkg[8] = 0;
         pkg[9] = 0;
-
         
+        NetUtils.insertData(pkg, this.payload, 10);
+
+            
         short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
         
 		this.checksum = calc_checksum;
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 8);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 22);
 		
 		return pkg;
 	}

@@ -67,6 +67,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	protected NetworkBuffer receiveBuffer;
 
 	private NetworkBuffer sendBuffer;
+	
+	private NetworkBuffer arpWaitBuffer;
 
 	private PhysicalSender sender;
 
@@ -87,6 +89,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		log = LogFactory.getLog(this.getClass());
 		receiveBuffer = new NetworkBuffer();
 		sendBuffer = new NetworkBuffer();
+		arpWaitBuffer = new NetworkBuffer();
+		
 		arpTable = new ARPTableImpl();
 	}
 
@@ -98,7 +102,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 				transportLayer = (TransportLayer) Class.forName(properties.getProperty("transportfilterlayer")).newInstance();
 			}
 			catch (Exception e) {
-				System.out.println(e.getMessage());
+				log.debug(e.getMessage());
 			}
 			((InternetLayer)transportLayer).setTransportLayer(TransportLayerFactory.createInstance());
 			TransportLayerFactory.getInstance().setInternetLayer((InternetLayer)transportLayer);
@@ -250,7 +254,6 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void send(Packet packet) {
 		if (packet instanceof ARPPacket) {
-
 			sendBuffer.add(EthernetPacket.createEthernetPacket(EthernetPacket.ETHERTYPE_ARP, Network.mac, ((ARPPacket) packet)
 					.getTargetHardwareAddress(), packet.getPacket()));
 
@@ -274,7 +277,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 					if (packet.getTimeout() == 0)
 						packet.setTimeout(System.currentTimeMillis());
 
-					receiveBuffer.add(packet);
+					//receiveBuffer.add(packet);
+					arpWaitBuffer.add(packet);
 					log.info("Destination address couldn't be resolved: " + ((IPPacket) packet).getDestinationAddress());
 
 					yield();
@@ -337,23 +341,52 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	 */
 	public void processARP(ARPPacket packet) {
 		
-		System.out.println("Begin of process ARP method\n");
-		Properties pts = this.getProperties();
-	
-
-		ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
-					                                pts.getProperty("mac-address") ,
-                                                    pts.getProperty("ip-address"), 
-                                                    packet.getSenderHardwareAddress(), 
-                                                    packet.getSenderProtocolAddress());
-
-	    System.out.println("ARP REPLY SENT\n");
-	    
-	    this.send(reply);
-	
+		if(packet.getOperationCode() == ARPPacket.ARP_REQUEST)
+		{			
+			log.debug("Begin of process ARP method\n");
+			Properties pts = this.getProperties();
 		
-		
+	
+			ARPPacket reply = ARPPacket.createARPPacket(ARPPacket.ARP_REPLY,
+						                                pts.getProperty("mac-address") ,
+	                                                    pts.getProperty("ip-address"), 
+	                                                    packet.getSenderHardwareAddress(), 
+	                                                    packet.getSenderProtocolAddress());
+	
+		    log.debug("ARP REPLY SENT\n");
+		    
+		    this.send(reply);
+		}
+		else if(packet.getOperationCode() == ARPPacket.ARP_REPLY)
+		{
+			log.debug("checking if we can send a new packet now!");
+			//we've got a new arp entry, so check arpWaitBuffer
+			for(int i = 0; i < arpWaitBuffer.getSize(); i++)
+			{
+				if(arpWaitBuffer.get(i) instanceof IPPacket)
+				{
+					IPPacket ipPacket = (IPPacket)arpWaitBuffer.get(i);
+					
+					String ip = ipPacket.getDestinationAddress();
+					if(!isSameSubnet(ip))
+						ip = Network.gateway;
+					
+					if(arpTable.resolveIPAddress(ip) != null)
+					{
+						send(ipPacket);
+					}
+					else
+					{
+						//TODO: check timeout!!!
+					}
+				}
+			}
+		}
 	}
+	
+	
+	
+	
 	/**
 	 * Processes an received IP packet. If the IP packet contains an ICMP, IGMP
 	 * or OSPF packet they are processed directly in this function. A response
@@ -368,13 +401,13 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		
 		if(!isValid(packet))
 		{
-			System.out.println("Received an invalid IP package!");
+			log.debug("Received an invalid IP package!");
 			return;
 		}
 		
-		System.out.println("Received a packet:");
+		log.debug("Received a packet:");
 		if(packet.getProtocol() == IPPacket.ICMP_PROTOCOL) {
-			System.out.println("    Received an ICMP packet!!!");
+			log.debug("    Received an ICMP packet!!!");
 			
 			ICMPPacket icmp;
 			
@@ -386,13 +419,13 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			}
 			catch(PacketParsingException ex)
 			{
-				System.out.println("ICMP packet contained errors:" + ex.getMessage());
+				log.debug("ICMP packet contained errors:" + ex.getMessage());
 				return;
 			}
 			
 			if(!icmp.isValid())
 			{
-				System.out.println("Received an invalid ICMP package!");
+				log.debug("Received an invalid ICMP package!");
 				return;
 			}
 			
@@ -416,7 +449,10 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 		}
 		else
 		{
-			transportLayer.process(packet);
+			if(Network.ip.equals(packet.getDestinationAddress()))
+			{
+				transportLayer.process(packet);
+			}
 		}
 	}
 
@@ -484,7 +520,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 	}
 	
 	public void ARPRequest(String ipAddress) {
-	System.out.println("Begin of ARP-Request method\n");
+		log.debug("Begin of ARP-Request method\n");
 	Properties pts = this.getProperties();
 
 
@@ -494,7 +530,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
                                                 "FF:FF:FF:FF:FF:FF", 
                                                 ipAddress);
 
-    System.out.println("ARP-Request SENT\n");
+    log.debug("ARP-Request SENT\n");
     
     this.send(request);
 	}

@@ -91,7 +91,7 @@ public class ARPPacket implements Packet {
 
 	    
 	    byte[] arp_pack = packet.getPayload();
-	    System.out.println(arp_pack.length);
+	    //System.out.println(arp_pack.length);
 	    this.htype = NetUtils.bytesToShort(NetUtils.getFromByteArray(arp_pack, 0, 2));
 	    this.ptype = NetUtils.bytesToShort(NetUtils.getFromByteArray(arp_pack, 2, 2));
 	    this.hlen = arp_pack[4];
