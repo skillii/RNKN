@@ -5,7 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
-import org.iaik.net.packets.rudp.RUDPPacket;
+import org.iaik.net.packets.rudp.*;
 
 public abstract class RUDPConnection implements Runnable {
 	protected int port;
@@ -15,6 +15,13 @@ public abstract class RUDPConnection implements Runnable {
 	private RUDPCallback callback;
 	protected int lastSequenceNrSent = 0;
 	protected TransportLayer transportLayer;
+	//---Receive values---
+	protected int nextPackageExpected = 0;
+	protected int lastPackageRcvd = 0;
+	protected int maxSegmentSize = 4096;
+	protected final int receiveBufferLength = 15;
+	protected byte[] appReadBuffer = new byte[maxSegmentSize]; 
+	protected RUDP_DTAPacket[] receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
 	
 	private Log log;
 	
@@ -106,6 +113,28 @@ public abstract class RUDPConnection implements Runnable {
 				return;
 			}
 			//TODO: process incoming packets:
+			
+			if(packet instanceof RUDP_ACKPacket)
+			{
+				//TODO: tell packetSend that we got an ack
+			}
+			
+			else if(packet instanceof RUDP_NULPacket)
+			{
+				//TODO: reset the hartbeat timer
+			}
+			
+			else if(packet instanceof RUDP_RSTPacket)
+			{
+				//TODO: close connection
+			}
+			
+			else if(packet instanceof RUDP_DTAPacket)					//last possibility Data Packet
+			{
+				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
+				
+				
+			}
 		}
 	}
 	
