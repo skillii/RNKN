@@ -28,9 +28,8 @@ public abstract class RUDPConnection implements Runnable {
 	/**
 	 * sends data over the established RUDPConnection
 	 */
-	void sendData(byte[] data) {
+	public abstract void sendData(byte[] data);
 		
-	}
 	
 	/**
 	 * returns received data from this Connection
@@ -105,6 +104,7 @@ public abstract class RUDPConnection implements Runnable {
 				log.warn("received packet(" + srcIP + "," + packet.getSrc_port() + ", where remoteIP(" + remoteIP + ") or remotePort(" + remotePort + "doesn't match");
 				return;
 			}
+			
 			//TODO: process incoming packets:
 		}
 	}

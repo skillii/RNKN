@@ -177,4 +177,10 @@ public class RUDPClientConnection extends RUDPConnection {
 		else
 			log.warn("connectPhasePacketReceived: received packet is not of type RUDP_SYNPacket!");
 	}
+
+	@Override
+	public void sendData(byte[] data) {
+		// TODO Auto-generated method stub
+		
+	}
 }
