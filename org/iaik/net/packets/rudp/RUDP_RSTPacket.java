@@ -25,7 +25,10 @@ public class RUDP_RSTPacket extends RUDPPacket {
 	{
 		byte[] pkg = new byte[this.packet_length];
 		
-		int header_identifier = 72;
+		int header_identifier = 0x10;
+		
+		if(ack)
+			header_identifier = header_identifier + 0x40;
 		
 		pkg[0] = (byte) header_identifier;
         pkg[1] = this.packet_length;
@@ -70,7 +73,7 @@ public class RUDP_RSTPacket extends RUDPPacket {
  	  
  	  this.rst = true;
  	  this.nul = false;
-      this.ack = true;
+      this.ack = false;
   	  this.syn = false;
   	  this.eak = false;
   	  

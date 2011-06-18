@@ -2,9 +2,11 @@ package org.iaik.net.RUDP;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.iaik.net.Network;
 import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
+import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
 
 public abstract class RUDPConnection implements Runnable {
@@ -22,6 +24,7 @@ public abstract class RUDPConnection implements Runnable {
 	protected final int receiveBufferLength = 15;
 	protected byte[] appReadBuffer = new byte[maxSegmentSize]; 
 	protected RUDP_DTAPacket[] receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+	private boolean bStopThread = false;
 	
 	private Log log;
 	
@@ -35,7 +38,7 @@ public abstract class RUDPConnection implements Runnable {
 	/**
 	 * sends data over the established RUDPConnection
 	 */
-	void sendData(byte[] data) {
+	public void sendData(byte[] data) {
 		
 	}
 	
@@ -44,33 +47,48 @@ public abstract class RUDPConnection implements Runnable {
 	 * @param maxbytes maximal count of bytes returned
 	 * @return bytearray containing the data
 	 */
-	byte[] getReceivedData(int maxbytes) {
+	public byte[] getReceivedData(int maxbytes) {
 		return null;
 	}
 	
 	/**
-	 * the Connection to the remote will be closed.
+	 * The Connection to the remote will be closed.
+	 * @param sendRST if a RST Packet should be sent
 	 */
-	void disconnect() {
-		
-	}
+	protected abstract void disconnect(boolean sendRST);
 
+	/**
+	 * The Connection to the remote will be closed.
+	 */
+	public void disconnect()
+	{
+		disconnect(true);
+	}
+	
 	@Override
 	public void run() {
-		while(true)
+		while(!bStopThread)
 		{
-			if(!isConnected())
+			try
 			{
-				//the connect phase differs from server to client, so
-				//we make a polymorph call here.
-				connectPhase();
-				//maybe i shouldn't do the connecting stuff in this thread? and better just make a blocking
-				//connect(...) call??? easier?
-				continue;
+				if(!isConnected())
+				{
+					//the connect phase differs from server to client, so
+					//we make a polymorph call here.
+					connectPhase();
+					//maybe i shouldn't do the connecting stuff in this thread? and better just make a blocking
+					//connect(...) call??? easier?
+					continue;
+				}
+				else
+				{
+					//now we're connected so here we can do the data-send stuff...
+					Thread.sleep(100);
+				}
 			}
-			else
+			catch(InterruptedException ex)
 			{
-				//now we're connected so here we can do the data-send stuff...
+				continue;
 			}
 		}
 	}
@@ -87,7 +105,7 @@ public abstract class RUDPConnection implements Runnable {
 	 * should perform for instance in RUDPServerConnection the 3 way Handshake for incoming
 	 * Client requests
 	 */
-	protected abstract void connectPhase();
+	protected abstract void connectPhase() throws InterruptedException;
 	
 	/**
 	 * this method will be called if a packet is received during receive phase.
@@ -126,7 +144,8 @@ public abstract class RUDPConnection implements Runnable {
 			
 			else if(packet instanceof RUDP_RSTPacket)
 			{
-				//TODO: close connection
+				disconnect(false);
+				callback.ConnectionClosed(ConnectionCloseReason.RSTbyPeer);
 			}
 			
 			else if(packet instanceof RUDP_DTAPacket)					//last possibility Data Packet
@@ -144,7 +163,19 @@ public abstract class RUDPConnection implements Runnable {
 	protected void startThread()
 	{
 		thread = new Thread(this);
+		bStopThread = false;
 		thread.start();
+	}
+	
+	protected void stopThread()
+	{
+		bStopThread = true;
+		thread.interrupt();
+	}
+	
+	protected void interruptThread()
+	{
+		thread.interrupt();
 	}
 	
 	/**
