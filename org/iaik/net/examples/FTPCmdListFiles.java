@@ -1,19 +1,24 @@
 package org.iaik.net.examples;
 
+import org.iaik.net.utils.NetUtils;
+
 
 public class FTPCmdListFiles extends FTPCommand {
 	
 	String fileList;
+	int sizeOfData;
 
 	@Override
 	public byte[] getCommand() {
 		
 		byte[] arrayToString = fileList.getBytes();
+		int size = arrayToString.length;
 		
-		byte[] pkg = new byte[arrayToString.length + 1];
+		byte[] pkg = new byte[arrayToString.length + 5];
 		
 		pkg[0] = this.identifier;
-		System.arraycopy(arrayToString, 0, pkg, 1, arrayToString.length);
+		NetUtils.insertData(pkg, NetUtils.intToBytes(size), 1);
+		System.arraycopy(arrayToString, 0, pkg, 5, arrayToString.length);
 		
 		return pkg;
 	}
@@ -42,10 +47,12 @@ public class FTPCmdListFiles extends FTPCommand {
 	private FTPCmdListFiles(byte[] packet)
 	{
 	  this.identifier = packet[0];
+
+	  this.sizeOfData = NetUtils.bytesToInt(packet, 1);
 	  
-	  byte[] data = new byte[packet.length - 1];
+	  byte[] data = new byte[this.sizeOfData];
 	  
-	  System.arraycopy(packet, 1, data, 0, packet.length -1);
+      System.arraycopy(packet, 5, data, 0, this.sizeOfData);
 
 	  this.fileList = new String(data);
     }

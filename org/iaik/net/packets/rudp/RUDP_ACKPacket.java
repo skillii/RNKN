@@ -89,7 +89,7 @@ public class RUDP_ACKPacket extends RUDPPacket {
 	public byte[] getPacket() {
         byte[] pkg = new byte[this.packet_length];
 		
-		int header_identifier = 64;
+		int header_identifier = 0x40;;
 		
 		pkg[0] = (byte)header_identifier;
         pkg[1] = this.packet_length;

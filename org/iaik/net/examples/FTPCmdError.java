@@ -1,19 +1,25 @@
 package org.iaik.net.examples;
 
+import org.iaik.net.utils.NetUtils;
+
 public class FTPCmdError extends FTPCommand {
 	
 	
 	String message;
+	int pack_size;
 
 	@Override
 	public byte[] getCommand() 
 	{
 	  byte[] arrayToString = message.getBytes();
 			
-	  byte[] pkg = new byte[arrayToString.length + 1];
+	  byte[] pkg = new byte[arrayToString.length + 5];
+	  
+	  this.pack_size = arrayToString.length;
 			
       pkg[0] = this.identifier;
-      System.arraycopy(arrayToString, 0, pkg, 1, arrayToString.length);
+      NetUtils.insertData(pkg, NetUtils.intToBytes(this.pack_size), 1);
+      System.arraycopy(arrayToString, 0, pkg, 5, arrayToString.length);
 			
 	  return pkg;
 	}
@@ -29,9 +35,11 @@ public class FTPCmdError extends FTPCommand {
 	{
       this.identifier = packet[0];
 		  
-	  byte[] data = new byte[packet.length - 1];
+	  byte[] data = new byte[packet.length - 5];
 		  
-	  System.arraycopy(packet, 1, data, 0, packet.length -1);
+	  
+	  this.pack_size = NetUtils.bytesToInt(packet, 1);
+	  System.arraycopy(packet, 5, data, 0, packet.length - 5);
 
 	  this.message = new String(data);
 	}
@@ -42,6 +50,11 @@ public class FTPCmdError extends FTPCommand {
       return this.message;	
 	}
 		
+	
+	public int getSize()
+	{
+	  return this.pack_size;
+	}
 		
 	public static FTPCmdError createFTPCmdError(byte[] packet)
     {

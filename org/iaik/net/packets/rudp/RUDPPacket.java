@@ -120,20 +120,17 @@ public abstract class RUDPPacket implements Packet {
 	  {
 		return RUDP_SYNPacket.createSYNPacket(packet);
 	  }
-	  
-	  //RST Packet
-	  if((identifier & 0x10) != 0)
+
+	  else if((identifier & 0x10) != 0)
 	  {
-		return RUDP_RSTPacket.createRSTPacket(packet);  
+		  return RUDP_RSTPacket.createRSTPacket(packet);
 	  }
-	  
-	  //NUL Packet
-	  if((identifier & 0x08) != 0)
+	  else if((identifier & 0x08) != 0)
 	  {
-		return RUDP_NULPacket.createNULPacket(packet);
+		  return RUDP_NULPacket.createNULPacket(packet);
 	  }
-		
-	  if((identifier & 0x40) != 0)
+
+	  else if((identifier & 0x40) != 0)
 	  {
 	    return RUDP_ACKPacket.createACKPacket(packet);
 	  }  

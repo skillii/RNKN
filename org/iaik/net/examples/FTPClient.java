@@ -44,7 +44,7 @@ public class FTPClient {
 
 		File config = null;
 		RUDPClientConnection myConnection = null;
-		RUDPClientCallback myCallback = null;
+		FTPClientCallback myCallback = null;
 		Condition transferCondition;
 		Lock transferConditionLock;
 		
@@ -122,6 +122,17 @@ public class FTPClient {
 						  transferConditionLock.lock();
 						  transferCondition.await();
 						  transferConditionLock.unlock();
+						  
+						  if(myCallback.getCallbackState() == ClientCallbackState.Error)
+						  {
+						    System.out.println(myCallback.getErrorMessage());	  
+						  }
+						  else if(myCallback.getCallbackState() == ClientCallbackState.FileListComplete)
+						  {
+							System.out.println("Loading file list completed\n");
+							System.out.println("===========================\n");
+							System.out.println(myCallback.getReceivedData().toString());
+						  }
 						}
 						else if(command.equals("get"))
 						{
@@ -155,7 +166,7 @@ public class FTPClient {
 						    FTPCmdFileData cmd2 = new FTPCmdFileData(file);
 						    
 						    
-						    ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.Other);
+						    ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.PuttingFile);
 						    myConnection.sendData(cmd1.getCommand());
 						    myConnection.sendData(cmd2.getCommand());
 						  }
@@ -173,8 +184,10 @@ public class FTPClient {
 							  if(NetUtils.isValidIP(destAddress))
 							  {
 							    
+								myCallback = new FTPClientCallback(transferCondition, transferConditionLock);  
 							    myConnection = new RUDPClientConnection(34000,destAddress,remotePort, myCallback);
-							    myCallback = new FTPClientCallback(myConnection,transferCondition, transferConditionLock);
+							    myCallback.setConnection(myConnection);
+							    
 							  
 							    try
 							    {
@@ -193,6 +206,7 @@ public class FTPClient {
 						}
 						else if(command.equals("exit") || command.equals("quit"))
 						{
+							myConnection.disconnect();
 							System.out.println("so long!");
 							keepRunning = false;
 						}

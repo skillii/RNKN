@@ -53,6 +53,8 @@ public class DefaultTransportLayer implements TransportLayer {
 			
 			int port = rudpPacket.getDest_port();
 			
+			boolean found = false;
+			
 			int i;
 			for(i = 0; i < connections.size(); i++)
 			{
@@ -60,11 +62,12 @@ public class DefaultTransportLayer implements TransportLayer {
 				{
 					log.debug("found a connection for that incoming packet");
 					connections.get(i).packetReceived(rudpPacket, packet.getSourceAddress());
+					found = true;
 					break;
 				}
 			}
 			
-			if(i == connections.size())
+			if(!found)
 				log.warn("found no connection for that incoming packet, port: " + rudpPacket.getDest_port());
 		}
 	}

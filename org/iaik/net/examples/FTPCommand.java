@@ -36,8 +36,7 @@ public abstract class FTPCommand {
         return FTPCmdListFiles.createFTPCmdListFiles(packet);
       
       if((identifier & 0x02) != 0)
-        return FTPCmdGetFile.createFTPCmdGetFile(packet);
-      
+        return FTPCmdGetFile.createFTPCmdGetFile(packet);     
       
       if((identifier & 0x04) != 0)
         return FTPCmdGetFile.createFTPCmdGetFile(packet);
