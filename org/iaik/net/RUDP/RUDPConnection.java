@@ -26,6 +26,15 @@ public abstract class RUDPConnection implements Runnable {
 	protected RUDP_DTAPacket[] receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
 	private boolean bStopThread = false;
 	
+	//---Sender Stuff---
+	protected int lastByteAcked;
+	protected int lastByteSent;
+	protected int lastByteWritten;
+	protected final int sendBufferLength = 15;
+	protected byte[] appWriteBuffer = new byte[maxSegmentSize];  // Nagle-Buffer for incomplete packages
+	protected RUDP_DTAPacket[] sendPacketBuffer = new RUDP_DTAPacket[sendBufferLength];  // Ringbuffer
+	
+	
 	private Log log;
 	
 	RUDPConnection(int port, RUDPCallback callback) {
