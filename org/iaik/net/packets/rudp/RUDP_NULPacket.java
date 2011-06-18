@@ -62,7 +62,10 @@ public class RUDP_NULPacket extends RUDPPacket {
 	{
 		byte[] pkg = new byte[this.packet_length];
 		
-		int header_identifier = 72;
+		int header_identifier = 0x08;
+		
+		if(ack)
+			header_identifier = header_identifier + 0x40;
 		
 		pkg[0] = (byte)header_identifier;
         pkg[1] = this.packet_length;

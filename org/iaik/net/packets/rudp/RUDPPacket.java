@@ -117,13 +117,23 @@ public abstract class RUDPPacket implements Packet {
 	{
 	  byte identifier = packet[0];
 	  
+	 
+	  
 	  
 	  if((identifier & 0x80) != 0)
 	  {
 	    //We got a SYN Packet here
 		return RUDP_SYNPacket.createSYNPacket(packet);
 	  }
-	  else  if((identifier & 0x40) != 0)
+	  else if((identifier & 0x10) != 0)
+	  {
+		  return RUDP_RSTPacket.createRSTPacket(packet);
+	  }
+	  else if((identifier & 0x08) != 0)
+	  {
+		  return RUDP_NULPacket.createNULPacket(packet);
+	  }
+	  else if((identifier & 0x40) != 0)
 	  {
 		  return RUDP_ACKPacket.createACKPacket(packet);
 	  }

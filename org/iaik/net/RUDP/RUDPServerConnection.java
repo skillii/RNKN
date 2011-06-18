@@ -46,7 +46,7 @@ public class RUDPServerConnection extends RUDPConnection {
 	}
 
 	@Override
-	protected void connectPhase() {
+	protected void connectPhase() throws InterruptedException {
 		RUDPPacket rudpPack;
 		IPPacket rudpPackIP;		
 		
@@ -55,13 +55,25 @@ public class RUDPServerConnection extends RUDPConnection {
 		
 		//Wait for an incoming SYN-Request
 		log.debug("waiting for incoming connection");
-		try {
 
+		try
+		{
 			connectCondition.await();
-			
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
 		}
+		catch(InterruptedException ex)
+		{
+			connectConditionLock.unlock();
+			throw ex;
+		}
+		
+		//SYN received:
+		
+		if(maxSegmentSize != ((RUDP_SYNPacket)connectPacket).getMax_segment_size())
+		{
+			maxSegmentSize = ((RUDP_SYNPacket)connectPacket).getMax_segment_size();
+			appReadBuffer = new byte[maxSegmentSize];
+		}
+
 		
 		
 		//Send SYNACK:
@@ -90,9 +102,9 @@ public class RUDPServerConnection extends RUDPConnection {
 					log.warn("received packet with invalid ack-nr(" + connectPacket.getAck_num() + ") instead of " + (lastSequenceNrSent));
 			}
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			connectTimer.cancel();
 			connectConditionLock.unlock();
-			return;
+			throw e;
 		}
 		
 		if(connectTimeoutReached)
@@ -110,6 +122,7 @@ public class RUDPServerConnection extends RUDPConnection {
 		connectConditionLock.unlock();
 		
 		log.debug("We're connected now!!!");
+		initForNewConnection();
 		serverCallback.clientConnected(remoteIP);
 	}
 	
@@ -119,7 +132,7 @@ public class RUDPServerConnection extends RUDPConnection {
 	public void startServer() {
 		transportLayer.addRUDPConnection(this);
 		state = ServerState.AwaitingConnection;
-		startThread();		
+		startThread();
 	}
 	
 	/**
@@ -128,7 +141,7 @@ public class RUDPServerConnection extends RUDPConnection {
 	public void stopServer() {
 		if(isConnected())
 		{
-			//Close Connection...
+			disconnect();
 		}
 		
 		//TODO: maybe we should also handle the state if the Server is currently
@@ -152,7 +165,7 @@ public class RUDPServerConnection extends RUDPConnection {
 			remotePort = connectPacket.getSrc_port();
 			
 			log.debug("received SYN Packet");
-			connectCondition.signal();
+			connectCondition.signalAll();
 		}
 		else if(packet instanceof RUDP_ACKPacket && state == ServerState.SYNACKSent)
 		{
@@ -160,10 +173,12 @@ public class RUDPServerConnection extends RUDPConnection {
 			connectPacket = packet;
 			
 			log.debug("received ACK Packet");
-			connectCondition.signal();
+			connectCondition.signalAll();
 		}
 		connectConditionLock.unlock();
 	}
+	
+	
 	
 	private class ClientConnectTimeout extends TimerTask
 	{
@@ -173,8 +188,29 @@ public class RUDPServerConnection extends RUDPConnection {
 			
 			connectConditionLock.lock();
 			connectTimeoutReached = true;
-			connectCondition.signal();
+			connectCondition.signalAll();
 			connectConditionLock.unlock();
 		}
+	}
+	
+	@Override
+	protected void disconnect(boolean sendRST) {
+		if(isConnected() && sendRST)
+		{
+			RUDPPacket rudpPack;
+			IPPacket rudpPackIP;
+			
+			
+			rudpPack = new RUDP_RSTPacket((short)remotePort, (short)port, (byte)0,(byte)0);
+			
+			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
+			transportLayer.sendPacket(rudpPackIP);
+		}
+		
+		connectConditionLock.lock();
+		state = ServerState.AwaitingConnection;
+		//to interrupt the current flow in the thread ...
+		interruptThread();
+		connectConditionLock.unlock();
 	}
 }

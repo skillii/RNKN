@@ -18,13 +18,15 @@ import org.iaik.net.factories.TransportLayerFactory;
 import org.iaik.net.interfaces.RUDPClientCallback;
 import org.iaik.net.packets.rudp.*;
 
+import com.sun.corba.se.pept.transport.Connection;
+
 
 
 public class RUDPClientConnection extends RUDPConnection {
 	private ClientState state;
 	private RUDPClientCallback clientCallback;
 	private final int maxConnectRetries = 1;
-	private final int connectTimeoutms = 10000;
+	private final int connectTimeoutms = 5000;
 	private Condition connectCondition;
 	private Lock connectConditionLock;
 	private Log log;
@@ -43,6 +45,7 @@ public class RUDPClientConnection extends RUDPConnection {
 		connectCondition = connectConditionLock.newCondition();
 		
 		log = LogFactory.getLog(this.getClass());
+		startThread();
 	}
 	
 	@Override
@@ -51,8 +54,22 @@ public class RUDPClientConnection extends RUDPConnection {
 	}
 
 	@Override
-	protected void connectPhase() {
-		
+	protected void connectPhase() throws InterruptedException {
+		connectConditionLock.lock();
+		do
+		{
+			try
+			{
+				connectCondition.await();
+			}
+			catch(InterruptedException ex)
+			{
+				connectConditionLock.unlock();
+				throw ex;
+			}
+		}
+		while(!isConnected());
+		connectConditionLock.unlock();
 	}
 	
 	/**
@@ -66,6 +83,8 @@ public class RUDPClientConnection extends RUDPConnection {
 		IPPacket rudpPackIP;
 		
 		TransportLayerFactory.getInstance().addRUDPConnection(this);
+		
+		connectConditionLock.lock();
 		
 		for(connectTry = 0; connectTry < maxConnectRetries; connectTry++)
 		{
@@ -89,9 +108,9 @@ public class RUDPClientConnection extends RUDPConnection {
 				while(true)
 				{
 					connectTimeoutReached = false;
-					connectConditionLock.lock();
+
 					connectCondition.await();
-					connectConditionLock.unlock();
+
 					log.debug("woke up");
 					
 					//TODO:additional checks necessary!!!
@@ -104,6 +123,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 				TransportLayerFactory.getInstance().removeRUDPConnection(this);
+				connectConditionLock.unlock();
 				return;
 			}
 			
@@ -117,27 +137,42 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			connectTimer.cancel();
 			
-			//SYNACK received, so Send ACK:
+			//SYNACK received!
+			
+			if(maxSegmentSize != synAckReceived.getMax_segment_size())
+			{
+				maxSegmentSize = synAckReceived.getMax_segment_size();
+				appReadBuffer = new byte[maxSegmentSize];
+			}
+			
+			
+			//now Send ACK:
 			//TODO: calculate advertised window size
 			rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)(++lastSequenceNrSent), (byte)(synAckReceived.getSeq_num()), (byte)5);
 			
 			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 			transportLayer.sendPacket(rudpPackIP);
 			
+
 			state = ClientState.Connected;
+			connectCondition.signal();
+
 			break;
 		}
+		
+		connectConditionLock.unlock();
 		
 		if(state != ClientState.Connected)
 		{
 			log.debug("failed to connect to server after " + maxConnectRetries + " tries");
 			TransportLayerFactory.getInstance().removeRUDPConnection(this);
+			
 			throw new RUDPException("failed to connect to server after " + maxConnectRetries + " tries");
 		}
-		else
-		{
-			log.debug("We're connected now!!!");
-		}
+
+		log.debug("We're connected now!!!");
+		
+		initForNewConnection();
 	}
 	
 	private class ConnectTimeout extends TimerTask
@@ -150,7 +185,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			log.debug("in ConnectTimout-Timer ....");
 			
 			connectConditionLock.lock();
-			connectCondition.signal();
+			connectCondition.signalAll();
 			connectConditionLock.unlock();
 		}
 	
@@ -168,7 +203,7 @@ public class RUDPClientConnection extends RUDPConnection {
 				log.debug("connectPhasePacketReceived: received a SYNACK packet");
 				
 				connectConditionLock.lock();
-				connectCondition.signal();
+				connectCondition.signalAll();
 				connectConditionLock.unlock();
 			}
 			else
@@ -176,5 +211,31 @@ public class RUDPClientConnection extends RUDPConnection {
 		}
 		else
 			log.warn("connectPhasePacketReceived: received packet is not of type RUDP_SYNPacket!");
+	}
+	
+	@Override
+	protected void disconnect(boolean sendRST) {
+		if(isConnected() && sendRST)
+		{
+			//send RST Packet
+			RUDPPacket rudpPack;
+			IPPacket rudpPackIP;
+			
+			
+			rudpPack = new RUDP_RSTPacket((short)remotePort, (short)port, (byte)0,(byte)0);
+			
+			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
+			transportLayer.sendPacket(rudpPackIP);
+		}
+		
+		if(isConnected())
+			TransportLayerFactory.getInstance().removeRUDPConnection(this);
+		
+		connectConditionLock.lock();
+		state = ClientState.Disconnected;
+		
+		//to interrupt the current flow in the thread ...
+		interruptThread();
+		connectConditionLock.unlock();
 	}
 }

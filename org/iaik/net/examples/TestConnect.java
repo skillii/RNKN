@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 
 import org.iaik.net.Network;
+import org.iaik.net.RUDP.ConnectionCloseReason;
 import org.iaik.net.RUDP.RUDPClientConnection;
 import org.iaik.net.RUDP.RUDPConnection;
 import org.iaik.net.RUDP.RUDPServerConnection;
@@ -135,9 +136,10 @@ public class TestConnect {
 					String command;
 					String destinationAddress;
 					
+					RUDPConnection connection = null;
+					
 					while(keepRunning)
 					{
-						
 						inputLine = input.readLine();
 						st = new StringTokenizer(inputLine);
 						
@@ -155,18 +157,27 @@ public class TestConnect {
 								
 								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
 								{
-									RUDPClientConnection clientConnection = new RUDPClientConnection(5000, destinationAddress, 25000, new
-											RUDPClientCallback() {
-												
-												@Override
-												public void DataReceived() {
-												}
-												
-												@Override
-												public void ConnectionClosed() {
+									RUDPClientConnection clientConnection;
+									
+									if(!(connection instanceof RUDPClientConnection))
+									{
+										clientConnection = new RUDPClientConnection(5000, destinationAddress, 25000, new
+												RUDPClientCallback() {
 													
-												}
-											});
+													@Override
+													public void DataReceived() {
+													}
+													
+													@Override
+													public void ConnectionClosed(ConnectionCloseReason reason) {
+														System.out.println("Connection closed by remote... reason:" + reason.toString());
+													}
+												});
+										connection = clientConnection;
+									}
+									else
+										clientConnection = (RUDPClientConnection)connection;
+								
 									
 									try
 									{
@@ -185,24 +196,40 @@ public class TestConnect {
 						}
 						else if(command.equals("s"))
 						{
-							RUDPServerConnection serverConnection = new RUDPServerConnection(25000, new RUDPServerCallback() {
-								
-								@Override
-								public void DataReceived() {
-								}
-								
-								@Override
-								public void ConnectionClosed() {
-									System.out.println("Connection closed by remote...");
-								}
-								
-								@Override
-								public void clientConnected(String ip) {
-									System.out.println("client with ip " + ip + "connected...");
-								}
-							});
+							RUDPServerConnection serverConnection;
+							
+							if(!(connection instanceof RUDPServerConnection))
+							{
+								serverConnection = new RUDPServerConnection(25000, new RUDPServerCallback() {
+									
+									@Override
+									public void DataReceived() {
+									}
+									
+									@Override
+									public void ConnectionClosed(ConnectionCloseReason reason) {
+										System.out.println("Connection closed by remote... reason:" + reason.toString());
+									}
+									
+									@Override
+									public void clientConnected(String ip) {
+										System.out.println("client with ip " + ip + "connected...");
+									}
+								});
+									
+								connection = serverConnection;
+							}
+							else
+								serverConnection = (RUDPServerConnection)connection;
 							
 							serverConnection.startServer();
+						}
+						else if(command.equals("d"))
+						{
+							if(connection != null)
+							{
+								connection.disconnect();
+							}
 						}
 						else if(command.equals("ping"))  // executes a ping request
 						{
