@@ -83,23 +83,33 @@ public abstract class RUDPConnection implements Runnable {
 		//	letztes Packet in schleife unvollstaendig gelesen rest in appread buffer
 		else
 		{
-			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, appReadBLoad);
+			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, appReadBLoad);			//Load content from appReadBuffer to returnBuffer
 			int offset = appReadBLoad;
 			appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);
+			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);		//clean  appReadBuffer (fill a empty buffer with nothing)
 			int i;
 			
-			for(i=0; (offset + NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) ) < returnBufferLength; i++ )
+			for(i=0; (offset + NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) ) < returnBufferLength; i++ )	//Load whole packages to receiveBuffer
 			{
 				returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPacket(), offset);
 				offset += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
 			}
 			
-			returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPacket(), offset, (returnBufferLength-offset));
-			appReadBuffer = (NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) - (returnBufferLength-offset));
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPacket(), 0, (returnBufferLength+offset), appReadBuffer );
+			returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPacket(), offset, (returnBufferLength-offset));		// Load data from the package which must be splitted
+			appReadBLoad = (NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
+			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPacket(), 0, (returnBufferLength+offset), appReadBLoad );
+			
+			
+			// shift the packages through the receivePacketBuffer
+			int start, shifty;
+			for( start=0, shifty=i; shifty<receiveBufferLength ; shifty++, start++ )
+				receivePacketBuffer[start] = receivePacketBuffer[shifty];
+			//fill rest with nothing
+			for(; start <receiveBufferLength ; start++)
+				receivePacketBuffer[start] = null;
 		}
-
+		
+		//return the data
 		return returnBuffer;
 	}
 	
