@@ -65,6 +65,14 @@ public class RUDPServerConnection extends RUDPConnection {
 			connectConditionLock.unlock();
 			throw ex;
 		}
+		
+		//SYN received:
+		
+		if(maxSegmentSize != ((RUDP_SYNPacket)connectPacket).getMax_segment_size())
+		{
+			maxSegmentSize = ((RUDP_SYNPacket)connectPacket).getMax_segment_size();
+			appReadBuffer = new byte[maxSegmentSize];
+		}
 
 		
 		
@@ -114,6 +122,7 @@ public class RUDPServerConnection extends RUDPConnection {
 		connectConditionLock.unlock();
 		
 		log.debug("We're connected now!!!");
+		initForNewConnection();
 		serverCallback.clientConnected(remoteIP);
 	}
 	

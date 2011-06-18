@@ -137,7 +137,16 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			connectTimer.cancel();
 			
-			//SYNACK received, so Send ACK:
+			//SYNACK received!
+			
+			if(maxSegmentSize != synAckReceived.getMax_segment_size())
+			{
+				maxSegmentSize = synAckReceived.getMax_segment_size();
+				appReadBuffer = new byte[maxSegmentSize];
+			}
+			
+			
+			//now Send ACK:
 			//TODO: calculate advertised window size
 			rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)(++lastSequenceNrSent), (byte)(synAckReceived.getSeq_num()), (byte)5);
 			
@@ -160,10 +169,10 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 			throw new RUDPException("failed to connect to server after " + maxConnectRetries + " tries");
 		}
-		else
-		{
-			log.debug("We're connected now!!!");
-		}
+
+		log.debug("We're connected now!!!");
+		
+		initForNewConnection();
 	}
 	
 	private class ConnectTimeout extends TimerTask
