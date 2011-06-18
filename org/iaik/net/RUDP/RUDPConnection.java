@@ -51,17 +51,11 @@ public abstract class RUDPConnection implements Runnable {
 	 */
 	public byte[] getReceivedData(int maxbytes)
 	{
-		int maxReadingBytes = appReadBLoad;
+		int maxReadingBytes; 
 		int returnBufferLength;
 		
-		
-		// maxReadingBytes berechnen mit appReadBuffer + schleife ueber packete von payload( nextExpPAC -1 || nextEXPPAC == lastRCVD)
-		if(nextPackageExpected == lastPackageRcvd)
-			for(int i=0; i < nextPackageExpected; i++)
-				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
-		else
-			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at i = nextPackageExpected - 2 
-				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+		maxReadingBytes = dataToRead();
+
 		
 		// returnBufferLength = min ( maxbytes , maxReadingBytes)
 		if(maxbytes > maxReadingBytes)
@@ -112,6 +106,26 @@ public abstract class RUDPConnection implements Runnable {
 		
 		//return the data
 		return returnBuffer;
+	}
+	/**
+	 * dataToRead() returns the an integer value with the number of Bytes to read
+	 * 				
+	 * @return		maxReadingBytes
+	 */
+	
+	public int dataToRead()
+	{
+		int maxReadingBytes = appReadBLoad;
+		
+		// maxReadingBytes berechnen mit appReadBuffer + schleife ueber packete von payload( nextExpPAC -1 || nextEXPPAC == lastRCVD)
+		if(nextPackageExpected == lastPackageRcvd)
+			for(int i=0; i < nextPackageExpected; i++)
+				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+		else
+			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at i = nextPackageExpected - 2 
+				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+		
+		return maxReadingBytes;
 	}
 	
 	/**
