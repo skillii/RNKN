@@ -65,6 +65,15 @@ public abstract class RUDPConnection implements Runnable {
 		disconnect(true);
 	}
 	
+	/**
+	 * all the initialisation stuff, if a new connection is established should be done here!
+	 * will be called by derived classes!
+	 */
+	protected void initForNewConnection()
+	{
+		
+	}
+	
 	@Override
 	public void run() {
 		while(!bStopThread)
