@@ -17,7 +17,7 @@ public class FTPCmdPutFile extends FTPCommand {
 	  return pkg;
 	}
 	
-	public FTPCmdPutFile(String file, byte[] data)
+	public FTPCmdPutFile(String file)
 	{
 	  this.fileName = file;
 	  this.identifier = 0x04;

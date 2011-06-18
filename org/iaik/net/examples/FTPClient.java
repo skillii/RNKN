@@ -8,10 +8,15 @@ import java.io.InputStreamReader;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.iaik.net.Network;
 import org.iaik.net.RUDP.RUDPClientConnection;
 import org.iaik.net.RUDP.RUDPServerConnection;
+import org.iaik.net.RUDP.RUDPConnection;
+import org.iaik.net.examples.FTPClientCallback.ClientCallbackState;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.RUDPException;
 import org.iaik.net.interfaces.RUDPClientCallback;
@@ -40,6 +45,11 @@ public class FTPClient {
 		File config = null;
 		RUDPClientConnection myConnection = null;
 		RUDPClientCallback myCallback = null;
+		Condition transferCondition;
+		Lock transferConditionLock;
+		
+		transferConditionLock = new ReentrantLock();
+		transferCondition = transferConditionLock.newCondition();
 
 		/**
 		 * Parses the provided command line parameters.
@@ -106,16 +116,55 @@ public class FTPClient {
 						  FTPCmdListFiles cmd = new FTPCmdListFiles("");	
 						  
 						  
+						  ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.AwaitingFileList);
 						  myConnection.sendData(cmd.getCommand());
 						  
-						  //TODO: Send the command to the server
+						  transferConditionLock.lock();
+						  transferCondition.await();
+						  transferConditionLock.unlock();
 						}
+						else if(command.equals("get"))
+						{
+						  if(st.countTokens() != 1)
+						  {
+							  System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+						  }
+						  else
+						  {
+						    FTPCmdGetFile cmd = new FTPCmdGetFile(st.nextToken());
+						    
+						    ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.AwaitingFile);
+						    myConnection.sendData(cmd.getCommand());
+						    
+						    transferConditionLock.lock();
+							transferCondition.await();
+							transferConditionLock.unlock();
+						  }
+						}
+						else if(command.equals("put"))
+						{
+						  if(st.countTokens() != 1)
+						    System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+						  else
+						  {
+						    String fileName = st.nextToken();
+						    
+						    File file = new File(fileName);
+						    
+						    FTPCmdPutFile cmd1 = new FTPCmdPutFile(fileName);
+						    FTPCmdFileData cmd2 = new FTPCmdFileData(file);
+						    
+						    
+						    ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.Other);
+						    myConnection.sendData(cmd1.getCommand());
+						    myConnection.sendData(cmd2.getCommand());
+						  }
+						}
+						
 						else if(command.equals("connect"))
 						{
 							if(st.countTokens() != 2)
-							{
-								System.out.println("oops, you gave me too much or too less arguments! usage: ...");
-							}
+							  System.out.println("oops, you gave me too much or too less arguments! usage: ...");
 							else
 							{
 							  String destAddress = st.nextToken();
@@ -123,10 +172,9 @@ public class FTPClient {
 							
 							  if(NetUtils.isValidIP(destAddress))
 							  {
-							    myCallback = new FTPClientCallback();
-							  
+							    
 							    myConnection = new RUDPClientConnection(34000,destAddress,remotePort, myCallback);
-							  
+							    myCallback = new FTPClientCallback(myConnection,transferCondition, transferConditionLock);
 							  
 							    try
 							    {
@@ -142,14 +190,6 @@ public class FTPClient {
 							    System.out.println("IP Address not valid");
 							  }
 	                        }
-						}
-						else if(command.equals("put"))  // executes a ping request
-						{
-						  if(st.countTokens() != 2)
-						  {
-						   System.out.println("oops, you gave me too much or too less arguments! usage: ...");
-						  }
-							
 						}
 						else if(command.equals("exit") || command.equals("quit"))
 						{

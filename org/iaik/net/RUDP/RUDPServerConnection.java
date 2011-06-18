@@ -178,9 +178,5 @@ public class RUDPServerConnection extends RUDPConnection {
 		}
 	}
 
-	@Override
-	public void sendData(byte[] data) {
-		// TODO Auto-generated method stub
-		
-	}
+
 }

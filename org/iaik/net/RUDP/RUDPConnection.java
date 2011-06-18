@@ -28,7 +28,10 @@ public abstract class RUDPConnection implements Runnable {
 	/**
 	 * sends data over the established RUDPConnection
 	 */
-	public abstract void sendData(byte[] data);
+	public void sendData(byte[] data)
+	{
+		
+	}
 		
 	
 	/**
@@ -36,7 +39,7 @@ public abstract class RUDPConnection implements Runnable {
 	 * @param maxbytes maximal count of bytes returned
 	 * @return bytearray containing the data
 	 */
-	byte[] getReceivedData(int maxbytes) {
+	public byte[] getReceivedData(int maxbytes) {
 		return null;
 	}
 	
@@ -106,6 +109,7 @@ public abstract class RUDPConnection implements Runnable {
 			}
 			
 			//TODO: process incoming packets:
+			
 		}
 	}
 	
