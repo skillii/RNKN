@@ -155,6 +155,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 
 			state = ClientState.Connected;
+			
 			connectCondition.signal();
 
 			break;
@@ -233,6 +234,8 @@ public class RUDPClientConnection extends RUDPConnection {
 		
 		connectConditionLock.lock();
 		state = ClientState.Disconnected;
+		
+		nulDaemon.stop();
 		
 		//to interrupt the current flow in the thread ...
 		interruptThread();

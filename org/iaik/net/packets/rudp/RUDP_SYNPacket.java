@@ -194,7 +194,7 @@ public class RUDP_SYNPacket extends RUDPPacket {
 	  //DEFAULT VALUES
 		
 	  this.max_outstanding_seg = 3;
-      this.max_segment_size = 4096;
+      this.max_segment_size = 1024;
 	  this.retransmission_timeout = 2000;
       this.cumulative_ack_timeout = 0;
 	  this.null_segment_timeout = 0;
