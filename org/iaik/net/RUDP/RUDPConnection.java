@@ -19,13 +19,13 @@ public abstract class RUDPConnection implements Runnable {
 	protected int lastSequenceNrSent = 0;
 	protected TransportLayer transportLayer;
 	//---Receive values---
-	protected int nextPackageExpected = 0;
-	protected int lastPackageRcvd = 0;
-	protected int maxSegmentSize = 4096;
-	protected final int receiveBufferLength = 15;
+	protected int nextPackageExpected;
+	protected int lastPackageRcvd;
+	protected int maxSegmentSize;
+	protected int receiveBufferLength;
 	protected byte[] appReadBuffer = new byte[maxSegmentSize]; 
-	protected int appReadBLoad = 0;
-	protected RUDP_DTAPacket[] receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+	protected int appReadBLoad;
+	protected RUDP_DTAPacket[] receivePacketBuffer;
 	private boolean bStopThread = false;
 	
 	private Log log;
@@ -134,7 +134,13 @@ public abstract class RUDPConnection implements Runnable {
 	 */
 	protected void initForNewConnection()
 	{
-		
+		nextPackageExpected = 0;
+		lastPackageRcvd = 0;
+		maxSegmentSize = 4096;
+		receiveBufferLength = 15;
+		appReadBuffer = new byte[maxSegmentSize]; 
+		appReadBLoad = 0;
+		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
 	}
 	
 	@Override
@@ -310,6 +316,11 @@ public abstract class RUDPConnection implements Runnable {
 		return diff;
 	}
 	
+	/**
+	 * Send an Acknowledge package
+	 * @param packet 		package to be acknowledged
+	 * @param adveWinSize	Advertised Window size
+	 */
 	private void sendACK(RUDPPacket packet, int adveWinSize)
 	{
 		RUDPPacket rudpPack;
