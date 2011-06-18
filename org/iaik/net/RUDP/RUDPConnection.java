@@ -213,7 +213,7 @@ public abstract class RUDPConnection implements Runnable {
 					// diff<0 send ack throw away
 					if(diff < 0)
 					{
-						advertisedWindow = receiveBufferLength - ((nextPackageExpected -1) -lastPackageRcvd);
+						advertisedWindow = calcAdvWinSize();
 						sendACK(packet,advertisedWindow);
 						return;						
 					}
@@ -235,7 +235,7 @@ public abstract class RUDPConnection implements Runnable {
 						// ACK Packages
 						if(oldNPE != nextPackageExpected)		// nextExpectedPacket changed -> dataReceived aufrufen & ACK senden
 						{
-							advertisedWindow = receiveBufferLength - ((nextPackageExpected -1) -lastPackageRcvd);
+							advertisedWindow = calcAdvWinSize();
 							sendACK(receivePacketBuffer[nextPackageExpected],advertisedWindow);
 						}
 					}				
@@ -246,6 +246,14 @@ public abstract class RUDPConnection implements Runnable {
 				
 			}
 		}
+	}
+	
+	/**
+	 * Calculate AdvertisedWindowSize
+	 */
+	protected int calcAdvWinSize()
+	{
+		return (receiveBufferLength - ((nextPackageExpected -1) -lastPackageRcvd));
 	}
 	
 	/**
