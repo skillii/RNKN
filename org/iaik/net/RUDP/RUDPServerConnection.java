@@ -210,6 +210,9 @@ public class RUDPServerConnection extends RUDPConnection {
 		
 		connectConditionLock.lock();
 		state = ServerState.AwaitingConnection;
+		
+		nulDaemon.stop();
+		
 		//to interrupt the current flow in the thread ...
 		interruptThread();
 		connectConditionLock.unlock();
