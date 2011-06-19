@@ -24,7 +24,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	//---Receive values---
 	protected int nextPackageExpected = 0;
 	protected int lastPackageRcvd = 0;
-	protected int maxSegmentSize = 4096;
+	protected int maxSegmentSize = 100;
 	protected final int receiveBufferLength = 15;
 	protected byte[] appReadBuffer = new byte[maxSegmentSize]; 
 	protected RUDP_DTAPacket[] receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
@@ -53,8 +53,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 3000;
-	protected final int nullTimeoutValue = 15000;
+	protected final int nullCycleValue = 3000000;
+	protected final int nullTimeoutValue = 15000000;
 	
 	
 	private Log log;
@@ -156,7 +156,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				}
 				else  // Nagle says send
 				{
-					payload = data.clone();
+					payload = Arrays.copyOfRange(data, i, data.length);
 					
 					dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
 					
