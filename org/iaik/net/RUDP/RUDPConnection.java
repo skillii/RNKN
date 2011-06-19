@@ -38,7 +38,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int lastPackageAcked;
 	protected int lastPackageSent;
 	protected int lastPackageWritten;
-	protected final int seqNrsAvailable = 256;
+	protected final int seqNrsAvailable = 128;
 	protected final int sendBufferLength = 16;
 	protected final int ackTimeout = 1000;  // ACK-Timeout in ms
 	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
@@ -381,8 +381,20 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 					
 					advLock.lock();
 					
-					while(lastPackageSent - lastPackageAcked > senderAdvertisedWindow)
-						advWinFree.await();
+					while(true)
+					{
+						int currentWindow;
+						
+						if(lastPackageAcked <= lastPackageSent)
+							currentWindow = lastPackageSent - lastPackageAcked;
+						else
+							currentWindow = seqNrsAvailable - (lastPackageAcked - lastPackageSent);
+					
+						if(currentWindow > senderAdvertisedWindow)
+							advWinFree.await();
+						else
+							break;
+					}
 					
 					SlidingWindowPacket swPacket;
 					
