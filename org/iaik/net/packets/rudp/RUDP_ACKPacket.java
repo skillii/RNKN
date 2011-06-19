@@ -112,5 +112,10 @@ public class RUDP_ACKPacket extends RUDPPacket {
 		// TODO Auto-generated method stub
 
 	}
+	
+	public byte getAvertisedWindowSize()
+	{
+		return advertised_window_size;
+	}
 
 }

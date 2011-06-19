@@ -8,6 +8,10 @@ import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
+import java.util.TimerTask;
 
 public abstract class RUDPConnection implements Runnable {
 	protected int port;
@@ -27,12 +31,23 @@ public abstract class RUDPConnection implements Runnable {
 	private boolean bStopThread = false;
 	
 	//---Sender Stuff---
-	protected int lastByteAcked;
-	protected int lastByteSent;
-	protected int lastByteWritten;
-	protected final int sendBufferLength = 15;
-	protected byte[] appWriteBuffer = new byte[maxSegmentSize];  // Nagle-Buffer for incomplete packages
-	protected RUDP_DTAPacket[] sendPacketBuffer = new RUDP_DTAPacket[sendBufferLength];  // Ringbuffer
+	protected int lastPackageAcked;
+	protected int lastPackageSent;
+	protected int lastPackageWritten;
+	protected final int seqNrsAvailable = 256;
+	protected final int sendBufferLength = 16;
+	protected final int ackTimeout = 1000;  // ACK-Timeout in ms
+	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
+	protected int appWriteBufferUsed;
+	protected byte[] appWriteBuffer;  // Nagle-Buffer for incomplete packages
+	protected int sendPacketBufferElements;
+	protected SlidingWindowPacket[] sendPacketBuffer;  // Ringbuffer
+	protected int unackedPackets;
+	protected Semaphore sendBufferFullSem;
+	protected Semaphore sendBufferEmptySem;
+	protected int senderAdvertisedWindow;
+	protected Lock advLock = new ReentrantLock();
+	protected Condition advWinFree = advLock.newCondition();
 	
 	
 	private Log log;
@@ -46,9 +61,148 @@ public abstract class RUDPConnection implements Runnable {
 	
 	/**
 	 * sends data over the established RUDPConnection
+	 * @param data byte array to send
+	 * generates data packets with Nagle algorithm
+	 * if the send buffer is full, the thread is blocked
+	 * sending itself happens in the run method
 	 */
 	public void sendData(byte[] data) {
+		if(data == null)
+			return;
 		
+		int i = 0;
+		RUDP_DTAPacket dataPacket;
+		byte[] payload;
+		
+		if(appWriteBufferUsed > 0)  // Nagle buffer is not empty -> fill it up
+		{
+			if(appWriteBufferUsed + data.length >= maxSegmentSize)  // we can fill the buffer
+			{
+				payload = Arrays.copyOf(appWriteBuffer, maxSegmentSize);
+				
+				for(i = 0; i + appWriteBufferUsed < maxSegmentSize; i++)
+					payload[i + appWriteBufferUsed] = data[i];
+				
+				appWriteBufferUsed = 0;
+				
+				dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+				
+				addToSendBuffer(dataPacket);
+				
+				if(appWriteBufferUsed + data.length == maxSegmentSize)  // we could exactly fill the buffer
+				{
+					return;  // no more packets to send, so FEIERABEND! TODO: is this neccessary??
+				}
+			}
+			else  // Nagle buffer again isnt full
+			{
+				for(i = 0; i < data.length; i++)
+				{
+					appWriteBuffer[i + appWriteBufferUsed] = data[i];
+					appWriteBufferUsed += data.length;
+				}
+				
+				if(unackedPackets > 0)  // theres data in flight -> we wait for more data before sending
+				{
+					return;
+				}
+				else  // we have no unacked Packets -> send the buffer and packet
+				{
+					payload = Arrays.copyOfRange(appWriteBuffer, 0, appWriteBufferUsed);
+					appWriteBufferUsed = 0;
+					
+					dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+					
+					addToSendBuffer(dataPacket);
+					return;
+				}
+			}
+		}
+		else if(data.length < maxSegmentSize)  // Nagle buffer is empty and data chunk is too small -> put in Nagle buffer
+		{
+			if(unackedPackets > 0)  // theres data in flight -> Nagle says store
+			{
+				appWriteBuffer = Arrays.copyOf(data, appWriteBuffer.length);
+				appWriteBufferUsed = data.length;
+				return;
+			}
+			else  // Nagle says send
+			{
+				payload = data.clone();
+				
+				dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+				
+				addToSendBuffer(dataPacket);
+				return;
+			}
+		}
+		
+		for(; i < data.length; i += maxSegmentSize)
+		{
+			if(data.length - i < maxSegmentSize)  // we cant produce a complete packet -> Nagle is our friend
+			{
+				if(unackedPackets > 0)  // theres data in flight -> Nagle says store
+				{
+					appWriteBuffer = Arrays.copyOfRange(data, i, i + appWriteBuffer.length);
+					appWriteBufferUsed = data.length;
+				}
+				else  // Nagle says send
+				{
+					payload = data.clone();
+					
+					dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+					
+					addToSendBuffer(dataPacket);
+				}
+			}
+			else  // standard package sending
+			{
+				payload = Arrays.copyOfRange(data, i, i + maxSegmentSize);
+				
+				dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+				
+				addToSendBuffer(dataPacket);
+			}
+		}
+	}
+	
+	/**
+	 * tries to add a packet to the send buffer
+	 * if the send buffer is full, the calling thread is blocked
+	 * implements the sliding window algorithm
+	 * @param packet the packet to send
+	 */
+	public void addToSendBuffer(RUDP_DTAPacket packet)
+	{
+		try
+		{
+			sendBufferFullSem.acquire();
+		}
+		catch(InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		
+		synchronized(sendPacketBuffer)
+		{
+			// calculate sequence number from parameters
+			lastPackageWritten++;
+			if(lastPackageWritten >= seqNrsAvailable)
+				lastPackageWritten = 0;
+			
+			packet.setSeq_num((byte)lastPackageWritten);
+		
+			SlidingWindowPacket swPacket = new SlidingWindowPacket(packet, 0);
+			
+			// add to send FIFO			
+			
+			
+			sendPacketBuffer[lastPackageWritten % sendBufferLength] = swPacket;
+			
+			sendPacketBufferElements++;
+		}
+		
+		sendBufferEmptySem.release();
 	}
 	
 	/**
@@ -80,7 +234,19 @@ public abstract class RUDPConnection implements Runnable {
 	 */
 	protected void initForNewConnection()
 	{
+		// sender init
+		lastPackageAcked = lastPackageSent = lastPackageWritten = lastSequenceNrSent;
+		appWriteBufferUsed = 0;  // write Buffer is empty in the beginning
+		unackedPackets = 0;
+		appWriteBuffer = new byte[maxSegmentSize];
+		sendPacketBuffer = new SlidingWindowPacket[sendBufferLength];
+		sendPacketBufferElements = 0;
+		sendBufferFullSem = new Semaphore(sendBufferLength);
+		sendBufferEmptySem = new Semaphore(0);
+		senderAdvertisedWindow = sendBufferLength;
 		
+		Timer sentPacketTimeoutTimer = new Timer();
+		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
 	}
 	
 	@Override
@@ -101,6 +267,38 @@ public abstract class RUDPConnection implements Runnable {
 				else
 				{
 					//now we're connected so here we can do the data-send stuff...
+					sendBufferEmptySem.acquire();
+					
+					advLock.lock();
+					
+					while(lastPackageSent - lastPackageAcked > senderAdvertisedWindow)
+						advWinFree.await();
+					
+					SlidingWindowPacket swPacket;
+					
+					synchronized(sendPacketBuffer)
+					{
+						lastPackageSent++;
+						if(lastPackageSent >= seqNrsAvailable)
+							lastPackageSent = 0;
+						
+						swPacket = sendPacketBuffer[lastPackageSent % sendBufferLength];
+						
+						//sendPacketBufferElements--;
+						
+						swPacket.setTimeout(System.currentTimeMillis() + ackTimeout);
+						
+						unackedPackets++;
+					}
+					
+					IPPacket rudpDataPacketIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, swPacket.getDataPacket().getPacket());
+					
+					transportLayer.sendPacket(rudpDataPacketIP);
+					
+					advLock.unlock();
+					
+					//sendBufferFullSem.release();
+					
 					Thread.sleep(100);
 				}
 			}
@@ -152,7 +350,32 @@ public abstract class RUDPConnection implements Runnable {
 			
 			if(packet instanceof RUDP_ACKPacket)
 			{
-				//TODO: tell packetSend that we got an ack
+				RUDP_ACKPacket ackPacket = (RUDP_ACKPacket) packet;
+				
+				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() < lastPackageSent)
+				{
+					synchronized(sendPacketBuffer)
+					{
+						while(lastPackageAcked <= ackPacket.getAck_num())  // all packages < ackPacket are acked
+						{
+							lastPackageAcked++;
+							if(lastPackageAcked >= seqNrsAvailable)
+								lastPackageAcked = 0;
+							
+							unackedPackets--;
+							sendPacketBufferElements--;
+							
+							sendBufferFullSem.release();
+						}
+					}
+				}
+				
+				advLock.lock();
+				senderAdvertisedWindow = (int) ackPacket.getAvertisedWindowSize();
+				if(senderAdvertisedWindow > 0)
+					advWinFree.signal();
+				advLock.unlock();
+					
 			}
 			
 			else if(packet instanceof RUDP_NULPacket)
@@ -205,5 +428,37 @@ public abstract class RUDPConnection implements Runnable {
 	public int getPort()
 	{
 		return port;
+	}
+
+	/**
+	 * this class is used to check if timeouts of sent but unacked
+	 * packages are reached
+	 * if a timeout is reached, the package is re-sent
+	 */
+	public class SentPackageTimeoutChecker extends TimerTask
+	{
+
+		@Override
+		public void run()
+		{
+			int packetNr;
+			
+			synchronized(sendPacketBuffer)
+			{
+				// run through all unacked packets and check timeouts
+				for(packetNr = lastPackageAcked + 1; packetNr < lastPackageAcked + 1 + unackedPackets; packetNr++)
+				{
+					if(System.currentTimeMillis() > sendPacketBuffer[packetNr % sendBufferLength].timeout)
+					{
+						// whoops, timeout reached! ALARM!! re-sent and set new timeout
+						IPPacket rudpDataPacketIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, sendPacketBuffer[packetNr % sendBufferLength].getDataPacket().getPacket());
+						sendPacketBuffer[packetNr % sendBufferLength].timeout = System.currentTimeMillis() + ackTimeout;
+						
+						transportLayer.sendPacket(rudpDataPacketIP);
+					}
+				}
+			}
+		}
+
 	}
 }
