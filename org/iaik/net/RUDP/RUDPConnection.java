@@ -356,7 +356,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	protected void initForNewConnection()
 	{
-
+		// receiver init
 		nextPackageExpected = 0;
 		lastPackageRcvd = 0;
 		maxSegmentSize = 100;
@@ -380,20 +380,6 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		Timer sentPacketTimeoutTimer = new Timer();
 		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
-
-		// NUL packet init
-		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
-		nulDaemon.start();
-
-
-		// receiver init
-		nextPackageExpected = 0;
-		lastPackageRcvd = 0;
-		maxSegmentSize = 4096;
-		receiveBufferLength = 15;
-		appReadBuffer = new byte[maxSegmentSize]; 
-		appReadBLoad = 0;
-		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
 
 		// NUL packet init
 		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
