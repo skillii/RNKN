@@ -30,8 +30,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 3000;
-	protected final int nullTimeoutValue = 15000;
+	protected final int nullCycleValue = 1000000;
+	protected final int nullTimeoutValue = 150000;
 	
 	private Log log;
 	
@@ -74,7 +74,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		byte[] returnBuffer = new byte[returnBufferLength];			//create ReturnBuffer
 		
-		// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer noch vorneschieben
+		// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer nach vorneschieben
 		if(returnBufferLength <= appReadBLoad)
 		{
 			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, returnBufferLength);
@@ -263,6 +263,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				{
 					log.debug("Packed Buffering: store first Packed");
 					receivePacketBuffer[0] = dtaPacket;
+					advertisedWindow = calcAdvWinSize();
+					sendACK(packet,advertisedWindow);
 					
 				}
 				else
@@ -303,9 +305,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							sendACK(receivePacketBuffer[nextPackageExpected],advertisedWindow);
 						}
 					}				
+					log.debug("callback for DATARECEIVED");
 					
-					callback.DataReceived();
+					
 				}
+				callback.DataReceived();
 				
 				
 			}
