@@ -9,6 +9,7 @@ import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
 
+
 import org.iaik.net.utils.NetUtils;
 
 import java.util.*;
@@ -25,6 +26,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	private RUDPCallback callback;
 	protected int lastSequenceNrSent = 0;
 	protected TransportLayer transportLayer;
+	
 	//---Receive values---
 	protected int nextPackageExpected;
 	protected int lastPackageRcvd;
@@ -58,9 +60,9 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 300000;
-	protected final int nullTimeoutValue = 1500000;
-	
+	protected final int nullCycleValue = 3000000;
+	protected final int nullTimeoutValue = 15000000;
+
 	
 	private Log log;
 	
@@ -162,7 +164,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				}
 				else  // Nagle says send
 				{
-					payload = data.clone();
+					payload = Arrays.copyOfRange(data, i, data.length);
 					
 					dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
 					
@@ -362,6 +364,16 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		nulDaemon.start();
 
 
+		// receiver init
+		nextPackageExpected = 0;
+		lastPackageRcvd = 0;
+		maxSegmentSize = 4096;
+		receiveBufferLength = 15;
+		appReadBuffer = new byte[maxSegmentSize]; 
+		appReadBLoad = 0;
+		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+
+		// NUL packet init
 		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
 		nulDaemon.start();
 	}

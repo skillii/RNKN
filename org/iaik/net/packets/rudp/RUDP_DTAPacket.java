@@ -27,7 +27,7 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	  this.payload = new byte[payload.length];
 	  System.arraycopy(payload, 0, this.payload, 0, payload.length);
 	  
-	  this.packet_length = Byte.parseByte(Integer.toString(9 + payload.length)); 
+	  this.packet_length = Byte.parseByte(Integer.toString(10 + payload.length)); 
 	  
 	  System.out.println("payload:" + new String(this.payload));
 	  
@@ -100,7 +100,8 @@ public class RUDP_DTAPacket extends RUDPPacket {
         pkg[9] = 0;
         
         //NetUtils.insertData(pkg, this.payload, 10);
-
+        System.out.println(Integer.toString((int)this.packet_length) + " " + Integer.toString(this.payload.length));
+        
         System.arraycopy(this.payload, 0, pkg, 10, this.payload.length);
         
             
