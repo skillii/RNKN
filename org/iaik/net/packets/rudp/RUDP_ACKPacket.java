@@ -47,7 +47,20 @@ public class RUDP_ACKPacket extends RUDPPacket {
 	      System.out.println("ack nr:" + ack_num);
 
 	      this.advertised_window_size = packet[8];
-	      this.checksum = NetUtils.bytesToShort(packet, 9);
+	      
+	      short checksum_should = NetUtils.bytesToShort(packet, 9);
+	      
+	      packet[9] = 0;
+	      packet[10] = 0;
+	      
+	      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
+	      
+	      if(checksum_should != calc_checksum)
+	        throw new PacketParsingException("Checksum failed! Should:" + checksum_should 
+	         + ", is: " + calc_checksum);
+			
+	      
+	      this.checksum = calc_checksum;
 	}
 	
 	public static RUDP_ACKPacket createACKPacket(byte[] packet) throws PacketParsingException
@@ -111,6 +124,11 @@ public class RUDP_ACKPacket extends RUDPPacket {
 	public void setTimeout(long timeout) {
 		// TODO Auto-generated method stub
 
+	}
+	
+	public byte getAvertisedWindowSize()
+	{
+		return advertised_window_size;
 	}
 
 }

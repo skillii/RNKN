@@ -192,6 +192,7 @@ public class RUDPServerConnection extends RUDPConnection {
 			connectConditionLock.unlock();
 		}
 	}
+
 	
 	@Override
 	protected void disconnect(boolean sendRST) {

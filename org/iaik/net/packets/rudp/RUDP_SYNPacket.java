@@ -145,8 +145,17 @@ public class RUDP_SYNPacket extends RUDPPacket {
       this.max_retrans = packet[20];
       this.max_cum_ack = packet[21];
       
-      this.checksum = NetUtils.bytesToShort(packet, 22);
+      short checksum_should = NetUtils.bytesToShort(packet, 22);
       
+      packet[22] = 0;
+      packet[23] = 0;
+      
+      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
+      
+      if(checksum_should != calc_checksum)
+        throw new PacketParsingException("Checksum calculation failed!");
+      
+      this.checksum = calc_checksum;
 		
 	}
 	
