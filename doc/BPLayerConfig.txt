@@ -1,0 +1,19 @@
+add the following lines to your configuration file:
+
+	<entry key="transportfilterlayer">org.iaik.net.layers.BPLayer</entry>
+	<!-- here all BPModules should be listed: -->
+	<entry key="BPModule00">org.iaik.net.bpmodules.PacketLoss</entry>
+	<entry key="BPModule00param">0.0</entry>
+	
+	<entry key="BPModule01">org.iaik.net.bpmodules.RandomDelay</entry>
+    <entry key="BPModule01param">50,2000</entry>
+    
+    
+
+    
+Packages which should be sent, are passed through all the Modules listed
+in your configuration file.
+The packages are first passed to BPModule00, then to BPModule01,...
+
+Details about the parameters of the modules can be found in the class description
+of the modules. 

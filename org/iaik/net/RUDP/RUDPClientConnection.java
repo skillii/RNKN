@@ -25,7 +25,7 @@ import com.sun.corba.se.pept.transport.Connection;
 public class RUDPClientConnection extends RUDPConnection {
 	private ClientState state;
 	private RUDPClientCallback clientCallback;
-	private final int maxConnectRetries = 1;
+	private final int maxConnectRetries = 10;
 	private final int connectTimeoutms = 5000;
 	private Condition connectCondition;
 	private Lock connectConditionLock;
