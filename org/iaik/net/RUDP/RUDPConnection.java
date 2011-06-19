@@ -54,7 +54,11 @@ public abstract class RUDPConnection implements Runnable {
 		int maxReadingBytes; 
 		int returnBufferLength;
 		
+		log.debug("Entered getReceived Data");
+		
 		maxReadingBytes = dataToRead();
+		
+		
 
 		
 		// returnBufferLength = min ( maxbytes , maxReadingBytes)
@@ -240,25 +244,30 @@ public abstract class RUDPConnection implements Runnable {
 				callback.ConnectionClosed(ConnectionCloseReason.RSTbyPeer);
 			}
 			
-			else if(packet instanceof RUDP_DTAPacket)					// a Data Packet
+			else if(packet instanceof RUDP_DTAPacket)					// a Data Package
 			{
+				log.debug("Entered  Packed Buffering");
+				
 				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
 				int diff;
 				int advertisedWindow;
 				
 				if(receivePacketBuffer[0] == null)
 				{
+					log.debug("Packed Buffering: store first Packed");
 					receivePacketBuffer[0] = dtaPacket;
 					
 				}
 				else
 				{
+					log.debug("Packed Buffering: calc diff");
 					// neue pos sequenzdiff
 					diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
 
 					// diff<0 send ack throw away
 					if(diff < 0)
 					{
+						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
 						advertisedWindow = calcAdvWinSize();
 						sendACK(packet,advertisedWindow);
 						return;						
@@ -266,8 +275,10 @@ public abstract class RUDPConnection implements Runnable {
 					
 					// diff > max buffline throw away
 					if(diff > receiveBufferLength)
+					{
+						log.error("Packet Buffer: Offerflow!");
 						return;
-					
+					}
 					// speichern, updaten von nextExpectedPacket und lastRcvdpacket
 					else
 					{
