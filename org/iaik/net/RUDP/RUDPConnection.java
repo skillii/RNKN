@@ -587,7 +587,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 * Calculates the real differenc between new and first package 
 	 * 
 	 * @ b1   sequenzenr. of new package
-	 * @ b2   sequenzenr. if old package
+	 * @ b2   sequenzenr. of old package
 	 * 
 	 * @return difference
 	 */
@@ -598,9 +598,9 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		int ib2 = NetUtils.toInt(b2);
 		int diff;
 		
-		if((ib1-ib2) < -127)
+		if((ib1-ib2) < -63)
 		{
-			diff = 255 - ib2 + ib1;
+			diff = 128 - ib2 + ib1;
 			
 		}
 		else 
