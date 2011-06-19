@@ -142,7 +142,7 @@ public class FTPClient {
 						{
 						  if(st.countTokens() != 1)
 						  {
-							  System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+							  System.out.println("oops, you gave me too much or too less arguments! usage: get filename");
 						  }
 						  else
 						  {
@@ -181,7 +181,7 @@ public class FTPClient {
 						else if(command.equals("put"))
 						{
 						  if(st.countTokens() != 1)
-						    System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+						    System.out.println("oops, you gave me too much or too less arguments! usage: put filename");
 						  else
 						  {
 						    String fileName = st.nextToken();
@@ -201,7 +201,7 @@ public class FTPClient {
 						else if(command.equals("connect"))
 						{
 							if(st.countTokens() != 2)
-							  System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+							  System.out.println("oops, you gave me too much or too less arguments! usage: connect destIP destPort");
 							else
 							{
 							  String destAddress = st.nextToken();

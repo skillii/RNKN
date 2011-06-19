@@ -112,7 +112,7 @@ public class FTPServer {
 						if(command.equals("start"))
 						{
 						  if(st.countTokens() != 2)
-						    System.out.println("oops, you gave me too much or too less arguments! usage: ...");
+						    System.out.println("oops, you gave me too much or too less arguments! usage: start port filedirectory");
 						  else
 						  {
 						    int port = Integer.parseInt(st.nextToken());

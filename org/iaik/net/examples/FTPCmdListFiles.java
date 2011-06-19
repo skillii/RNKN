@@ -30,6 +30,21 @@ public class FTPCmdListFiles extends FTPCommand {
 	  this.identifier = 0x01;
 	}
 	
+	
+	public void setFiles(String[] files)
+	{
+      StringBuilder fileBuilder = new StringBuilder();
+		  
+	  for(String i: files)
+	  {
+	    fileBuilder.append(i);
+	    fileBuilder.append("\n");
+	  }
+	  
+	  this.fileList = fileBuilder.toString();
+	}
+	
+	
 	public FTPCmdListFiles(String[] files)
 	{
 	  StringBuilder fileBuilder = new StringBuilder();
@@ -56,7 +71,6 @@ public class FTPCmdListFiles extends FTPCommand {
 
 	  this.fileList = new String(data);
     }
-	
 	
 	public String getFileList()
 	{

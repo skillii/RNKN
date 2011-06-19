@@ -14,6 +14,7 @@ public class FTPClientCallback implements RUDPClientCallback {
 	public enum ClientCallbackState{
 		AwaitingFile,
 		AwaitingFileList,
+		AwaitingErrorMessage,
 		Error,
 		FileListComplete,
 		FileComplete,
@@ -145,39 +146,29 @@ public class FTPClientCallback implements RUDPClientCallback {
 	  }
 	  
 	}
-	
-	
+		
 	private void receivedErrorMessage(int size, byte identifier)
 	{
 		if((identifier & FTPCommand.ERROR_IDENTIFIER) != 0)
 	    {
-	      while(true)
+	      if(this.conn.dataToRead() >= size)
 	      {
-	        if(this.conn.dataToRead() >= size)
-	        {
-	          byte[] tempData = conn.getReceivedData(size);	
-	          
-	          try 
-			  {
-			    FTPCmdError cmd = (FTPCmdError)FTPCommand.parseFTPCommand(tempData);
-			    this.errorMessage = cmd.getMessage(); 
+            byte[] tempData = conn.getReceivedData(size);	
+	        this.cbstate = ClientCallbackState.Error;
+            
+            this.errorMessage = tempData.toString();
 			      
-			    transferConditionLock.lock();
-				transferCondition.signal();
-				transferConditionLock.unlock();
-				break;
-			  } 
-			  catch (PacketParsingException e) 
-			  {
-			    this.errorMessage = "Failed parsing FTP command";
-			      	
-			    transferConditionLock.lock();
-				transferCondition.signal();
-				transferConditionLock.unlock();
-				break;
-			  }	
-	        }
-	      } 
+			transferConditionLock.lock();
+		    transferCondition.signal();
+			transferConditionLock.unlock();
+		  }
+	      else
+	      {
+	        this.cbstate = ClientCallbackState.AwaitingErrorMessage;
+	        this.bytesToRead = size;
+	        this.countRead = 0;
+	        this.dataRead = new byte[this.bytesToRead];
+	      }
 	    }
 		else
 		{
@@ -205,6 +196,7 @@ public class FTPClientCallback implements RUDPClientCallback {
 		  {
 		    this.awaitingFileTransfer(); 
 		  }
+
 		  
 		  if(this.cbstate == ClientCallbackState.AwaitingFileList)
 		  {  
@@ -212,7 +204,8 @@ public class FTPClientCallback implements RUDPClientCallback {
 		  }
 		  
 		  if(this.cbstate == ClientCallbackState.TransferingFile || 
-		     this.cbstate == ClientCallbackState.TransferingFileList)
+		     this.cbstate == ClientCallbackState.TransferingFileList ||
+		     this.cbstate == ClientCallbackState.AwaitingErrorMessage)
 		  {
 			/*We're transfering a file, the whole package consist of file data
 			  Furthermore this means the package doesn't have an identifier */
@@ -231,6 +224,12 @@ public class FTPClientCallback implements RUDPClientCallback {
 			    this.cbstate = ClientCallbackState.FileComplete;
 			  else if(this.cbstate == ClientCallbackState.TransferingFileList)
 				this.cbstate = ClientCallbackState.FileListComplete;
+			  else if(this.cbstate == ClientCallbackState.AwaitingErrorMessage)
+			  {
+				this.cbstate = ClientCallbackState.Error;
+				this.errorMessage = this.dataRead.toString();
+			  }
+			  
 			  transferConditionLock.lock();
 			  transferCondition.signal();
 			  transferConditionLock.unlock();
@@ -259,11 +258,9 @@ public class FTPClientCallback implements RUDPClientCallback {
 	  return this.dataRead;	
 	}
 
-
 	@Override
-	public void ConnectionClosed(ConnectionCloseReason reason) {
-		this.discon_reason = reason;
-		
+	public void ConnectionClosed(ConnectionCloseReason reason) 
+	{
+	  this.discon_reason = reason;
 	}
-
 }
