@@ -27,7 +27,7 @@ public class FTPCmdListFiles extends FTPCommand {
 	public FTPCmdListFiles(String files)
 	{
 	  this.fileList = files;
-	  this.identifier = 0x01;
+	  this.identifier = FTPCommand.LIST_FILE_IDENTIFIER;
 	}
 	
 	
