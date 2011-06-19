@@ -9,6 +9,8 @@ import org.iaik.net.RUDP.RUDPServerConnection;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.interfaces.RUDPServerCallback;
 import org.iaik.net.utils.NetUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class FTPServerCallback implements RUDPServerCallback{
 
@@ -35,6 +37,8 @@ public class FTPServerCallback implements RUDPServerCallback{
 	
 	byte[] dataRead;
 	
+	Log log;
+	
 	public FTPServerCallback(Condition cond, Lock lock, String directory) throws FileNotFoundException
 	{
 		this.transferCondition = cond;
@@ -43,7 +47,10 @@ public class FTPServerCallback implements RUDPServerCallback{
 		
 		if(!this.directory.exists())
 		  throw new FileNotFoundException("Directory existiert nicht");
+		
 		this.state = ServerCallbackState.NotAwaitingData;
+		
+		log = LogFactory.getLog(this.getClass());
 	}
 	
 	public void setConnection(RUDPServerConnection conn)
@@ -165,10 +172,14 @@ public class FTPServerCallback implements RUDPServerCallback{
 	  byte identifier = tempData[0];
 	  int size = NetUtils.bytesToInt(tempData, 1);
 	  
+	  log.info("Finding out type of Command");
+	  log.info("Identifier " + Byte.toString(identifier));
+	  
 	  if((identifier & FTPCommand.GET_FILE_IDENTIFIER) != 0)
 	  {
 	    if(this.conn.dataToRead() >= size)
 	    {
+	      log.info("Get File Command received"); 	
 	      byte[] data = this.conn.getReceivedData(size);
 	      
 	      try 
@@ -193,6 +204,8 @@ public class FTPServerCallback implements RUDPServerCallback{
 	   
 	  if((identifier & FTPCommand.LIST_FILE_IDENTIFIER) != 0)
 	  {
+		log.info("List file command received");  
+		  
         if(this.conn.dataToRead() >= size)
 		{
           byte[] data = this.conn.getReceivedData(size);
@@ -238,6 +251,9 @@ public class FTPServerCallback implements RUDPServerCallback{
 
 	@Override
 	public void DataReceived() {
+		
+		log.info("Data received called");
+		log.info("Data to read = " + Integer.toString(this.conn.dataToRead()));
 		
 		if(this.state == ServerCallbackState.NotAwaitingData)
 		{

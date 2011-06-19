@@ -113,6 +113,11 @@ public class RUDP_DTAPacket extends RUDPPacket {
 		
 		return pkg;
 	}
+	
+	public byte[] getPayload()
+	{
+	  return this.payload;	
+	}
 
 	@Override
 	public long getTimeout() {
