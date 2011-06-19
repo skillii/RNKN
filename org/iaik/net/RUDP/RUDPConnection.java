@@ -10,7 +10,7 @@ import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
 import org.iaik.net.utils.NetUtils;
 
-public abstract class RUDPConnection implements Runnable {
+public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int port;
 	protected int remotePort;
 	private Thread thread;
@@ -27,6 +27,11 @@ public abstract class RUDPConnection implements Runnable {
 	protected int appReadBLoad;
 	protected RUDP_DTAPacket[] receivePacketBuffer;
 	private boolean bStopThread = false;
+	
+	//NUL stuff
+	protected NULDaemon nulDaemon;
+	protected final int nullCycleValue = 3000;
+	protected final int nullTimeoutValue = 15000;
 	
 	private Log log;
 	
@@ -159,6 +164,8 @@ public abstract class RUDPConnection implements Runnable {
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
 		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
+		nulDaemon.start();
 	}
 	
 	@Override
@@ -226,7 +233,7 @@ public abstract class RUDPConnection implements Runnable {
 				log.warn("received packet(" + srcIP + "," + packet.getSrc_port() + ", where remoteIP(" + remoteIP + ") or remotePort(" + remotePort + "doesn't match");
 				return;
 			}
-			//TODO: process incoming packets:
+			nulDaemon.packetReceived();
 			
 			if(packet instanceof RUDP_ACKPacket)
 			{
@@ -386,5 +393,11 @@ public abstract class RUDPConnection implements Runnable {
 	public int getPort()
 	{
 		return port;
+	}
+	
+	@Override
+	public void TimeoutReached() {
+		disconnect(true);
+		callback.ConnectionClosed(ConnectionCloseReason.NULTimeout);
 	}
 }
