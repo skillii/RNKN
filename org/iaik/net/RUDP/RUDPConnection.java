@@ -30,8 +30,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 1000000;
-	protected final int nullTimeoutValue = 150000;
+	protected final int nullCycleValue = 300000;
+	protected final int nullTimeoutValue = 1500000;
 	
 	private Log log;
 	
@@ -103,7 +103,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			appReadBLoad = (NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
 			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPacket(), 0, (returnBufferLength+offset), appReadBLoad );
 			
-			
+			i++;
 			// shift the packages through the receivePacketBuffer
 			int start, shifty;
 			for( start=0, shifty=i; shifty<receiveBufferLength ; shifty++, start++ )
@@ -113,6 +113,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				receivePacketBuffer[start] = null;
 		}
 		
+		log.debug("return Data");
 		//return the data
 		return returnBuffer;
 	}
@@ -128,8 +129,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		// maxReadingBytes berechnen mit appReadBuffer + schleife ueber packete von payload( nextExpPAC -1 || nextEXPPAC == lastRCVD)
 		if(nextPackageExpected == lastPackageRcvd)
-			for(int i=0; i < nextPackageExpected; i++)
+		{
+			int i=0;
+			do
+			{
 				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+				 i++;
+			}while(i < nextPackageExpected);
+		}
 		else
 			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at i = nextPackageExpected - 2 
 				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
