@@ -174,6 +174,7 @@ public class FTPServerCallback implements RUDPServerCallback{
 	  
 	  log.info("Finding out type of Command");
 	  log.info("Identifier " + Byte.toString(identifier));
+	  log.info("Size " + Integer.toString(size));
 	  
 	  if((identifier & FTPCommand.GET_FILE_IDENTIFIER) != 0)
 	  {
@@ -210,19 +211,11 @@ public class FTPServerCallback implements RUDPServerCallback{
 		{
           byte[] data = this.conn.getReceivedData(size);
   	      
-  	      try 
-  	      {
-  			FTPCmdListFiles cmd = (FTPCmdListFiles)FTPCommand.parseFTPCommand(data);
+          FTPCmdListFiles cmd = new FTPCmdListFiles("dummy");
+  		  cmd.setFiles(this.directory.list());
   			
-  			cmd.setFiles(this.directory.list());
-  			
-  			this.conn.sendData(cmd.getCommand());
-  	      }
-  	      catch(PacketParsingException e)
-  	      {
-  	        System.out.println("Couldn't parse list file packet\n");	  
-  	      }
-		}
+  		  this.conn.sendData(cmd.getCommand());
+     	}
 		else
 		{
 		  this.state = ServerCallbackState.AwaitingFileListData;
@@ -257,8 +250,10 @@ public class FTPServerCallback implements RUDPServerCallback{
 		
 		if(this.state == ServerCallbackState.NotAwaitingData)
 		{
-		  if(this.conn.dataToRead() > 5)
+		  if(this.conn.dataToRead() >= 5)
+		  {	  
 	        findOutPacketType();
+		  }
 		}
 		else if(this.state == ServerCallbackState.AwaitingGetFileName ||
 				this.state == ServerCallbackState.AwaitingFileListData)
