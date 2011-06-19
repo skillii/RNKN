@@ -17,7 +17,7 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	  this.eak = false;
 	  this.rst = false;
 	  this.nul = false;	
-	  
+
 	  this.seq_num = seq_num;
 	  this.ack_num = ack_num;
 	  
@@ -28,6 +28,8 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	  System.arraycopy(payload, 0, this.payload, 0, payload.length);
 	  
 	  this.packet_length = Byte.parseByte(Integer.toString(9 + payload.length)); 
+	  
+	  System.out.println("payload:" + new String(this.payload));
 	  
 	}
 	

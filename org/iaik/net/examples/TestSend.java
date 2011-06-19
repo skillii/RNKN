@@ -34,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -52,12 +53,8 @@ import org.iaik.net.layers.DefaultInternetLayer;
 import org.iaik.net.layers.JPcapPhysicalSender;
 import org.iaik.net.packets.ICMPPacket;
 import org.iaik.net.packets.IPPacket;
-import org.iaik.net.packets.rudp.RUDPPacket;
-import org.iaik.net.packets.rudp.RUDP_ACKPacket;
-import org.iaik.net.packets.rudp.RUDP_DTAPacket;
 import org.iaik.net.utils.NetUtils;
 import org.iaik.net.utils.PingSender;
-
 
 /**
  * Tests the network capturing capabilities using the basic templates of his
@@ -70,8 +67,8 @@ import org.iaik.net.utils.PingSender;
  * @date Dec 6, 2006
  * @version $Rev: 930 $ $Date: 2007/02/12 17:56:29 $
  */
-public class TestReceive {
-	private static String name = "TestNetwork-Receive";
+public class TestSend {
+	private static String name = "TestSend";
 
 	/**
 	 * Prints the usage.
@@ -80,7 +77,6 @@ public class TestReceive {
 		System.out.println("usage: TestNetwork -config <file> \n\n" + "	-config file  File to read the configuration from.\n");
 	}
 
-	private static RUDPConnection connection = null;
 	/**
 	 * 
 	 * @param argv
@@ -141,7 +137,7 @@ public class TestReceive {
 					String command;
 					String destinationAddress;
 					
-					
+					RUDPConnection connection = null;
 					
 					while(keepRunning)
 					{
@@ -171,7 +167,7 @@ public class TestReceive {
 													
 													@Override
 													public void DataReceived() {
-														System.out.println(connection.getReceivedData(5));
+														System.out.println("client received something...");
 													}
 													
 													@Override
@@ -188,6 +184,13 @@ public class TestReceive {
 									try
 									{
 										clientConnection.connect();
+										
+										// try to send something
+										byte[] data = new byte[120];
+										Arrays.fill(data, (byte)42);
+										
+										clientConnection.sendData(data);
+									
 									}
 									catch(RUDPException ex)
 									{
@@ -210,19 +213,7 @@ public class TestReceive {
 									
 									@Override
 									public void DataReceived() {
-										System.out.println("Received Data: \n");
-										byte[] spam;
-										while(connection.dataToRead()!=0)
-										{System.out.println("stuff");
-											spam = connection.getReceivedData(5);
-											for(int i=0; i<5 ; i++)
-											{
-												System.out.println(spam[i]);
-											}										
-											
-										}
-										System.out.println("stuff");
-										
+										System.out.println("server received something...");
 									}
 									
 									@Override
@@ -242,6 +233,7 @@ public class TestReceive {
 								serverConnection = (RUDPServerConnection)connection;
 							
 							serverConnection.startServer();
+							
 						}
 						else if(command.equals("d"))
 						{
@@ -274,34 +266,6 @@ public class TestReceive {
 									System.out.println("hey, the IP you gave me is not valid! shame on you!");
 								}
 							}
-						}
-						else if(command.equals("send"))
-						{
-							
-								destinationAddress = "192.168.57.2";
-								
-								if(NetUtils.isValidIP(destinationAddress))  // check if IP is valid
-								{
-									RUDPPacket rudpPack;
-									IPPacket rudpPackIP;
-									//byte[] data = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
-									String test = "bla";
-									byte sqz_nr = 125;
-									byte ack_nr = 0;
-									
-									//System.out.println("Vorher: " + new String(data));
-		
-									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), test.getBytes(), sqz_nr, ack_nr);
-									
-									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
-									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);
-								}
-								
-								else
-								{
-									System.out.println("hey, the IP you gave me is not valid! shame on you!");
-								}
-							
 						}
 						else if(command.equals("exit") || command.equals("quit"))
 						{
