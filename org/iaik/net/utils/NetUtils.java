@@ -777,6 +777,15 @@ public class NetUtils {
 		return data;
 	}
 	
+	public static byte[] insertData(byte[] data, byte[] data2, int offset, int offset2, int count) {
+		if (((offset + count) <= data.length) && ((offset2+count) <=data.length)) {
+			for (int index = offset; (index - offset) < count; index++) {
+				data[index] = data2[(index - offset + offset2)];
+			}
+		}
+		return data;
+	}
+	
 	public static short calcIPChecksum(byte[] data, int offset, int length)
 	{
 		int sum = 0;
