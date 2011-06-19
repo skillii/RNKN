@@ -55,15 +55,18 @@ public class DefaultTransportLayer implements TransportLayer {
 			
 			boolean found = false;
 			
-			int i;
-			for(i = 0; i < connections.size(); i++)
+			synchronized(connections)
 			{
-				if(connections.get(i).getPort() == port)
+				int i;
+				for(i = 0; i < connections.size(); i++)
 				{
-					log.debug("found a connection for that incoming packet");
-					connections.get(i).packetReceived(rudpPacket, packet.getSourceAddress());
-					found = true;
-					break;
+					if(connections.get(i).getPort() == port)
+					{
+						log.debug("found a connection for that incoming packet: " + rudpPacket.toString());
+						connections.get(i).packetReceived(rudpPacket, packet.getSourceAddress());
+						found = true;
+						break;
+					}
 				}
 			}
 			
@@ -91,13 +94,19 @@ public class DefaultTransportLayer implements TransportLayer {
 
 	@Override
 	public void addRUDPConnection(RUDPConnection connection) {
-		this.connections.add(connection);
+		synchronized(connections)
+		{
+			this.connections.add(connection);
+		}
 		
 	}
 
 	@Override
 	public void removeRUDPConnection(RUDPConnection connection) {
-		this.connections.remove(connection);
+		synchronized(connections)
+		{
+			this.connections.remove(connection);
+		}
 		
 	}
 

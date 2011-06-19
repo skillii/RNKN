@@ -25,7 +25,7 @@ import com.sun.corba.se.pept.transport.Connection;
 public class RUDPClientConnection extends RUDPConnection {
 	private ClientState state;
 	private RUDPClientCallback clientCallback;
-	private final int maxConnectRetries = 1;
+	private final int maxConnectRetries = 10;
 	private final int connectTimeoutms = 5000;
 	private Condition connectCondition;
 	private Lock connectConditionLock;
@@ -155,6 +155,7 @@ public class RUDPClientConnection extends RUDPConnection {
 			
 
 			state = ClientState.Connected;
+			
 			connectCondition.signal();
 
 			break;
@@ -233,6 +234,8 @@ public class RUDPClientConnection extends RUDPConnection {
 		
 		connectConditionLock.lock();
 		state = ClientState.Disconnected;
+		
+		nulDaemon.stop();
 		
 		//to interrupt the current flow in the thread ...
 		interruptThread();
