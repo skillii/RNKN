@@ -156,6 +156,8 @@ public class RUDPClientConnection extends RUDPConnection {
 
 			state = ClientState.Connected;
 			
+			initForNewConnection();
+			
 			connectCondition.signal();
 
 			break;
@@ -172,8 +174,7 @@ public class RUDPClientConnection extends RUDPConnection {
 		}
 
 		log.debug("We're connected now!!!");
-		
-		initForNewConnection();
+
 	}
 	
 	private class ConnectTimeout extends TimerTask
@@ -213,6 +214,7 @@ public class RUDPClientConnection extends RUDPConnection {
 		else
 			log.warn("connectPhasePacketReceived: received packet is not of type RUDP_SYNPacket!");
 	}
+
 	
 	@Override
 	protected void disconnect(boolean sendRST) {

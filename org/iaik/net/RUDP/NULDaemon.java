@@ -11,6 +11,8 @@ import org.iaik.net.packets.rudp.RUDPPacket;
 import org.iaik.net.packets.rudp.RUDP_NULPacket;
 import org.iaik.net.packets.rudp.RUDP_SYNPacket;
 
+import sun.rmi.runtime.Log;
+
 class NULDaemon {
 	private Timer sendTimer;
 	private Timer receiveTimer;

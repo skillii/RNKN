@@ -8,11 +8,15 @@ import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
+
+
+import org.iaik.net.utils.NetUtils;
+
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 import java.util.TimerTask;
-import org.iaik.net.utils.NetUtils;
+
 
 public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int port;
@@ -72,6 +76,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	/**
 	 * sends data over the established RUDPConnection
+     *
 	 * @param data byte array to send
 	 * generates data packets with Nagle algorithm
 	 * if the send buffer is full, the thread is blocked
@@ -331,6 +336,15 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	protected void initForNewConnection()
 	{
+
+		nextPackageExpected = 0;
+		lastPackageRcvd = 0;
+		maxSegmentSize = 4096;
+		receiveBufferLength = 15;
+		appReadBuffer = new byte[maxSegmentSize]; 
+		appReadBLoad = 0;
+		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+
 		// sender init
 		lastPackageAcked = lastPackageSent = lastPackageWritten = lastSequenceNrSent;
 		appWriteBufferUsed = 0;  // write Buffer is empty in the beginning
@@ -344,6 +358,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		Timer sentPacketTimeoutTimer = new Timer();
 		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
+
+		// NUL packet init
+		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
+		nulDaemon.start();
+
 
 		// receiver init
 		nextPackageExpected = 0;
@@ -468,8 +487,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				log.warn("received packet(" + srcIP + "," + packet.getSrc_port() + ", where remoteIP(" + remoteIP + ") or remotePort(" + remotePort + "doesn't match");
 				return;
 			}
+
 			nulDaemon.packetReceived();
+
 			
+
 			if(packet instanceof RUDP_ACKPacket)
 			{
 				RUDP_ACKPacket ackPacket = (RUDP_ACKPacket) packet;
@@ -573,6 +595,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				
 				
 			}
+
 		}
 	}
 	

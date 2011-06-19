@@ -10,7 +10,7 @@ public class RUDP_NULPacket extends RUDPPacket {
 	public RUDP_NULPacket(short src_port, short dest_port)
 	{
       this.nul = true;
-      this.ack = true;
+      this.ack = false;
  	  this.syn = false;
  	  this.eak = false;
  	  this.rst = false;
@@ -23,7 +23,7 @@ public class RUDP_NULPacket extends RUDPPacket {
  	  this.dest_port = dest_port;
  	}
 	
-	private RUDP_NULPacket(byte[] packet)
+	private RUDP_NULPacket(byte[] packet) throws PacketParsingException
 	{
 	      this.packet_length = packet[1];
 		  this.dest_port = NetUtils.bytesToShort(packet, 2);
@@ -32,7 +32,17 @@ public class RUDP_NULPacket extends RUDPPacket {
 	      this.seq_num = packet[6];
 	      this.ack_num = packet[7];
 	      
-	      this.checksum = NetUtils.bytesToShort(packet, 8);     		
+	      short checksum_should = NetUtils.bytesToShort(packet, 8); 
+	      
+	      packet[8] = 0;
+	      packet[9] = 0;
+	      
+	      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length - 2);
+	      
+	      if(checksum_should != calc_checksum)
+	        throw new PacketParsingException("Checksum failed!");
+	      
+	      this.checksum = calc_checksum;
 	}
 	
 	

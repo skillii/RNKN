@@ -59,8 +59,18 @@ public class RUDP_RSTPacket extends RUDPPacket {
 		  
 	  this.seq_num = packet[6];
 	  this.ack_num = packet[7];
-	      
-	  this.checksum = NetUtils.bytesToShort(packet, 8);
+	  
+	  short checksum_should = NetUtils.bytesToShort(packet, 8);   
+	  
+	  packet[8] = 0;
+	  packet[9] = 0;
+      
+      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
+      
+      if(checksum_should != calc_checksum)
+        throw new PacketParsingException("Checksum failed!");
+      
+      this.checksum = calc_checksum;
 		
 	}
 	
