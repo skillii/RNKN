@@ -31,6 +31,7 @@ public class FTPClientCallback implements RUDPClientCallback {
 	byte[] dataRead;
 	
 	int bytesToRead;
+	int countRead;
 
 	
 	public FTPClientCallback(Condition transferCondition, Lock transferConditionLock)
@@ -43,103 +44,185 @@ public class FTPClientCallback implements RUDPClientCallback {
 	}
 	
 	
-	@Override
-	public void DataReceived() {
+	private void receivedPacketWhileUploading()
+	{
 		byte[] tempData;
-		 
+		int packet_size;
+	    
 		
-		if(this.cbstate == ClientCallbackState.PuttingFile)
-		{
-		  //Kann nur ein Errorpaket zurückkommen...
-          this.cbstate = ClientCallbackState.Error;
-		    
-		  tempData = conn.getReceivedData(4096);
-		    
-		  try 
+		//Es sollte nur ein Error Paket kommen..
+		
+        this.cbstate = ClientCallbackState.Error;
+	    
+	    tempData = conn.getReceivedData(5);
+	    packet_size = NetUtils.bytesToInt(tempData, 1);
+	    byte identifier = tempData[0];
+	    
+        this.receivedErrorMessage(packet_size, identifier);
+	}
+	
+	private void awaitingFileTransfer()
+	{
+		byte[] tempData = conn.getReceivedData(5);
+		  
+	    byte identifier = tempData[0];
+	    int size = NetUtils.bytesToInt(tempData, 1);
+	    
+	    if((identifier & FTPCommand.FILE_DATA_IDENTIFIER) != 0)
+	    {
+	      //Find out how big the file is
+		  //(We assume this information arrived in the first RUDP Packet as well)
+		  this.bytesToRead = size;
+		  this.countRead = 0;
+		  
+		  tempData = this.conn.getReceivedData(this.bytesToRead);
+		  
+		  //Now read the rest of the data that came with the first package
+		  this.dataRead = new byte[this.bytesToRead];
+		 
+		  System.arraycopy(tempData, 0, this.dataRead, 0, tempData.length);
+		 
+		  //Reduce counter of bytes to read
+		  this.bytesToRead -= tempData.length;
+		  this.countRead += tempData.length;
+		 
+		  if(this.bytesToRead > 0)
+		    this.cbstate = ClientCallbackState.TransferingFile;
+		  else
 		  {
-		    FTPCmdError cmd = (FTPCmdError)FTPCommand.parseFTPCommand(tempData);
-		    this.errorMessage = cmd.getMessage(); 
-		      
+			this.cbstate = ClientCallbackState.FileComplete;
+			
 		    transferConditionLock.lock();
 			transferCondition.signal();
 			transferConditionLock.unlock();
-		   } 
-		   catch (PacketParsingException e) 
-		   {
-		     this.errorMessage = "Failed parsing FTP command";
-		      	
-		     transferConditionLock.lock();
-			 transferCondition.signal();
-			 transferConditionLock.unlock();
-		   }	
-		}
-		
-		if(this.cbstate == ClientCallbackState.AwaitingFile)
-		{
-		  tempData = conn.getReceivedData(4096);
-		  
-		  byte identifier = tempData[0];
+		  }
+	    }
+	    else
+	    {
+	      receivedErrorMessage(size,identifier);	
+	    }
+	}
+	
+	private void awaitingFileList()
+	{
+	  byte[] tempData = conn.getReceivedData(5);
 		   
-		  //Yeehaw baby, the file header is boomboxing
-		  if((identifier & 0x08) != 0)
-		  {
-		     //Find out how big the file is
-			 //(We assume this information arrived in the first RUDP Packet as well)
-			 this.bytesToRead = NetUtils.bytesToInt(tempData, 1);
-			 
-			 //Now read the rest of the data that came with the first package
-			 this.dataRead = new byte[tempData.length - 5];
-			 System.arraycopy(tempData, 5, this.dataRead, 0, tempData.length - 5);
-			 
-			 //Reduce counter of bytes to read
-			 this.bytesToRead -= tempData.length - 5;
-			 
-			 this.cbstate = ClientCallbackState.TransferingFile;
-		  }
+	  byte identifier = tempData[0];
+	  int size = NetUtils.bytesToInt(tempData, 1); 
+	     
+	  if((identifier & FTPCommand.LIST_FILE_IDENTIFIER) != 0)
+	  {
+
+	    this.bytesToRead = size;
+	    this.countRead = 0;
+		 
+		tempData = this.conn.getReceivedData(this.bytesToRead);
 		  
-		  //We didn't get the file, but got an FTP error back
-		  else if((identifier & 0x10) != 0)
-		  {
-		    this.cbstate = ClientCallbackState.Error;
-		    
-		    tempData = conn.getReceivedData(4096);
-		    
-		    try 
-		    {
-		      FTPCmdError cmd = (FTPCmdError)FTPCommand.parseFTPCommand(tempData);
-		      this.errorMessage = cmd.getMessage(); 
-		      
-		      transferConditionLock.lock();
-			  transferCondition.signal();
-			  transferConditionLock.unlock();
-			} 
-		    catch (PacketParsingException e) 
-		    {
-		      this.errorMessage = "Failed parsing FTP command";
-		      	
-		      transferConditionLock.lock();
-			  transferCondition.signal();
-			  transferConditionLock.unlock();
-			}
-		  }
-		  
-		}
-		
-		if(this.cbstate == ClientCallbackState.TransferingFile || 
-		   this.cbstate == ClientCallbackState.TransferingFileList)
+		//Now read the rest of the data that came with the first package
+		this.dataRead = new byte[this.bytesToRead];
+		 
+		System.arraycopy(tempData, 0, this.dataRead, 0, tempData.length);
+		 
+		//Reduce counter of bytes to read
+		this.bytesToRead -= tempData.length;
+		this.countRead += tempData.length;
+		 
+		if(this.bytesToRead > 0)
+		    this.cbstate = ClientCallbackState.TransferingFileList;
+		else
 		{
+	      this.cbstate = ClientCallbackState.FileListComplete;
+			
+		  transferConditionLock.lock();
+		  transferCondition.signal();
+		  transferConditionLock.unlock();
+		}
+	  }
+	  
+	  else
+	  {
+	    receivedErrorMessage(size, identifier);	  
+	  }
+	  
+	}
+	
+	
+	private void receivedErrorMessage(int size, byte identifier)
+	{
+		if((identifier & FTPCommand.ERROR_IDENTIFIER) != 0)
+	    {
+	      while(true)
+	      {
+	        if(this.conn.dataToRead() >= size)
+	        {
+	          byte[] tempData = conn.getReceivedData(size);	
+	          
+	          try 
+			  {
+			    FTPCmdError cmd = (FTPCmdError)FTPCommand.parseFTPCommand(tempData);
+			    this.errorMessage = cmd.getMessage(); 
+			      
+			    transferConditionLock.lock();
+				transferCondition.signal();
+				transferConditionLock.unlock();
+				break;
+			  } 
+			  catch (PacketParsingException e) 
+			  {
+			    this.errorMessage = "Failed parsing FTP command";
+			      	
+			    transferConditionLock.lock();
+				transferCondition.signal();
+				transferConditionLock.unlock();
+				break;
+			  }	
+	        }
+	      } 
+	    }
+		else
+		{
+		  this.errorMessage = "Received unexpected or unknown package!";	
+		  transferConditionLock.lock();
+		  transferCondition.signal();
+		  transferConditionLock.unlock();
+		}
+	}
+	
+	
+	@Override
+	public void DataReceived() {
+
+		
+		if(this.conn.dataToRead() > 5)
+		{
+			
+		  if(this.cbstate == ClientCallbackState.PuttingFile)
+		  {
+            this.receivedPacketWhileUploading();
+		  }
+		
+		  if(this.cbstate == ClientCallbackState.AwaitingFile)
+		  {
+		    this.awaitingFileTransfer(); 
+		  }
+		  
+		  if(this.cbstate == ClientCallbackState.AwaitingFileList)
+		  {  
+		    this.awaitingFileList();   
+		  }
+		  
+		  if(this.cbstate == ClientCallbackState.TransferingFile || 
+		     this.cbstate == ClientCallbackState.TransferingFileList)
+		  {
 			/*We're transfering a file, the whole package consist of file data
 			  Furthermore this means the package doesn't have an identifier */
 			
-			tempData = conn.getReceivedData(4096);
+			byte[] tempData = conn.getReceivedData(this.bytesToRead);
 			
-			byte[] temp = new byte[tempData.length + this.dataRead.length];
-			
-			//Copy old data and insert new data
-			System.arraycopy(this.dataRead, 0, temp, 0, this.dataRead.length);
-			System.arraycopy(tempData, 0, temp, this.dataRead.length + 1, temp.length);
+			System.arraycopy(tempData, 0, this.dataRead, this.countRead, tempData.length);
 			
 			this.bytesToRead -= tempData.length;
+			this.countRead += tempData.length;
 			
 			if(this.bytesToRead == 0)
 			{
@@ -151,68 +234,10 @@ public class FTPClientCallback implements RUDPClientCallback {
 			  transferConditionLock.lock();
 			  transferCondition.signal();
 			  transferConditionLock.unlock();
-			  
 			}
-			
-		}
-		
-		if(this.cbstate == ClientCallbackState.AwaitingFileList)
-		{
-		   tempData = conn.getReceivedData(4096);
-		   
-		   byte identifier = tempData[0];
-		   
-		   if((identifier & 0x01) != 0)
-		   {
-		     this.bytesToRead = NetUtils.bytesToInt(tempData, 1);
-		     
-		     
-		     this.dataRead = new byte[this.bytesToRead];
-		     System.arraycopy(tempData, 0, this.dataRead, 5, tempData.length - 5);
-		       
-		     this.bytesToRead -= tempData.length;
-		     
-		     if(this.bytesToRead > 0)
-		     {
-		       //This means the file list didn't make it in one package
-		       this.cbstate = ClientCallbackState.TransferingFileList;
-		     }
-		     else
-		     {
-		       //Filelist complete, wake up the client	 
-		       this.cbstate = ClientCallbackState.FileListComplete;
-		       transferConditionLock.lock();
-			   transferCondition.signal();
-			   transferConditionLock.unlock();
-		     }
-		     
-		   }
-		   else if((identifier & 0x10) != 0)
-		   {
-		     this.cbstate = ClientCallbackState.Error;
-			    
-			 tempData = conn.getReceivedData(4096);
-			    
-			 try 
-			 {
-			   FTPCmdError cmd = (FTPCmdError)FTPCommand.parseFTPCommand(tempData);
-			   this.errorMessage = cmd.getMessage(); 
-			      
-			   transferConditionLock.lock();
-			   transferCondition.signal();
-			   transferConditionLock.unlock();
-		     } 
-			 catch (PacketParsingException e) 
-			 {
-			   this.errorMessage = "Failed parsing FTP command";
-			      	
-			   transferConditionLock.lock();
-			   transferCondition.signal();
-			   transferConditionLock.unlock();
-			 } 
-		   }
-		}
-	}
+		  }		  
+	   }
+	}	
 	
 	public void setCallbackState(ClientCallbackState cbstate)
 	{

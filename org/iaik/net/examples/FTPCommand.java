@@ -13,14 +13,18 @@ import org.iaik.net.exceptions.PacketParsingException;
  * 
  */
 
-
-
 public abstract class FTPCommand {
+	
 	byte identifier;
+    public static final byte LIST_FILE_IDENTIFIER = 0x01;
+    public static final byte GET_FILE_IDENTIFIER = 0x02;
+    public static final byte PUT_FILE_IDENTIFIER = 0x04;
+    public static final byte FILE_DATA_IDENTIFIER = 0x08;
+    public static final byte ERROR_IDENTIFIER = 0x10;
 	
 	
     public abstract byte[] getCommand();
-    
+
     
     /**
      * This method returns an instance of the class the packet equals to.

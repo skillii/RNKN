@@ -1,16 +1,20 @@
 package org.iaik.net.examples;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.io.ByteArrayInputStream;
+import java.io.*;
 
 import org.iaik.net.Network;
 import org.iaik.net.RUDP.RUDPClientConnection;
@@ -142,7 +146,8 @@ public class FTPClient {
 						  }
 						  else
 						  {
-						    FTPCmdGetFile cmd = new FTPCmdGetFile(st.nextToken());
+							String fileName = st.nextToken();
+						    FTPCmdGetFile cmd = new FTPCmdGetFile(fileName);
 						    
 						    ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.AwaitingFile);
 						    myConnection.sendData(cmd.getCommand());
@@ -150,6 +155,27 @@ public class FTPClient {
 						    transferConditionLock.lock();
 							transferCondition.await();
 							transferConditionLock.unlock();
+							
+							if(myCallback.getCallbackState() == ClientCallbackState.Error)
+							{
+							  System.out.println(myCallback.getErrorMessage());	  
+							}
+							else if(myCallback.getCallbackState() == ClientCallbackState.FileListComplete)
+							{
+						      System.out.println("Downloading File completed\n");
+							  System.out.println("===========================\n");
+						      
+							  byte[] dataRead = myCallback.getReceivedData();
+							  
+							  File myFile = new File(fileName);
+							  myFile.createNewFile();
+							  
+							  BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(fileName));
+							  
+			                  bos.write(dataRead);
+							  bos.close();
+							}
+							
 						  }
 						}
 						else if(command.equals("put"))

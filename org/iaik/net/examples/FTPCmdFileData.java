@@ -1,8 +1,12 @@
 package org.iaik.net.examples;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -41,7 +45,31 @@ public class FTPCmdFileData extends FTPCommand {
 	  this.identifier = 0x08;
 	}
 	
+	public FTPCmdFileData(File file) throws IOException, FileNotFoundException
+	{
+        InputStream is = new FileInputStream(file);
+        
+        long length = file.length();
+
+
+        int offset = 0;
+        int numRead = 0;
+        while (offset < data.length
+               && (numRead=is.read(data, offset, data.length-offset)) >= 0)
+        {
+            offset += numRead;
+        }
+
+        if (offset < data.length) 
+        {
+          throw new IOException("File konnte nicht vollstaendig gelesen werden :  "+file.getName());
+        }
+    
+        is.close();	
+	}
 	
+	
+	/*
 	public FTPCmdFileData(File file)
 	{
       ByteArrayOutputStream bos = new ByteArrayOutputStream() ;
@@ -59,7 +87,7 @@ public class FTPCmdFileData extends FTPCommand {
 	  }
 	 
 	  this.data = bos.toByteArray();
-	}
+	}*/
 	
 	private FTPCmdFileData(byte[] packet)
 	{
