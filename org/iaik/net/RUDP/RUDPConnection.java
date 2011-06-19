@@ -9,7 +9,6 @@ import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
 
-
 import org.iaik.net.utils.NetUtils;
 
 import java.util.*;
@@ -44,7 +43,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int lastPackageWritten;
 	protected final int seqNrsAvailable = 128;
 	protected final int sendBufferLength = 16;
-	protected final int ackTimeout = 1000;  // ACK-Timeout in ms
+	protected final int ackTimeout = 3000;  // ACK-Timeout in ms
 	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
 	protected int appWriteBufferUsed;
 	protected byte[] appWriteBuffer;  // Nagle-Buffer for incomplete packages
@@ -54,8 +53,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected Semaphore sendBufferFullSem;
 	protected Semaphore sendBufferEmptySem;
 	protected int senderAdvertisedWindow;
-	protected Lock advLock = new ReentrantLock();
-	protected Condition advWinFree = advLock.newCondition();
+	protected Lock advLock;
+	protected Condition advWinFree;
 	
 	
 	//NUL stuff
@@ -90,10 +89,15 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		RUDP_DTAPacket dataPacket;
 		byte[] payload;
 		
+		log.debug("sendData called, data length = " + data.length);
+		
+		
 		if(appWriteBufferUsed > 0)  // Nagle buffer is not empty -> fill it up
 		{
 			if(appWriteBufferUsed + data.length >= maxSegmentSize)  // we can fill the buffer
 			{
+				log.debug("sending: nagle buffer in use, we can fill and send");
+				
 				payload = Arrays.copyOf(appWriteBuffer, maxSegmentSize);
 				
 				for(i = 0; i + appWriteBufferUsed < maxSegmentSize; i++)
@@ -107,6 +111,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				
 				if(appWriteBufferUsed + data.length == maxSegmentSize)  // we could exactly fill the buffer
 				{
+					log.debug("sending: nagle buffer could be filled exactly, finished");
 					return;  // no more packets to send, so FEIERABEND! TODO: is this neccessary??
 				}
 			}
@@ -120,10 +125,13 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				
 				if(unackedPackets > 0)  // theres data in flight -> we wait for more data before sending
 				{
+					log.debug("sending: nagle buffer isnt full and theres data in flight, we wait");
 					return;
 				}
 				else  // we have no unacked Packets -> send the buffer and packet
 				{
+					log.debug("sending: nagle buffer isnt full but there are no unacked pckgs, we send");
+					
 					payload = Arrays.copyOfRange(appWriteBuffer, 0, appWriteBufferUsed);
 					appWriteBufferUsed = 0;
 					
@@ -138,12 +146,16 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		{
 			if(unackedPackets > 0)  // theres data in flight -> Nagle says store
 			{
+				log.debug("sending: nagle buffer is empty, chunk too small to send and data in flight, we wait");
+				
 				appWriteBuffer = Arrays.copyOf(data, appWriteBuffer.length);
 				appWriteBufferUsed = data.length;
 				return;
 			}
 			else  // Nagle says send
 			{
+				log.debug("sending: nagle buffer is empty, chunk too small and no unacked pckgs, we send");
+				
 				payload = data.clone();
 				
 				dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
@@ -159,11 +171,15 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			{
 				if(unackedPackets > 0)  // theres data in flight -> Nagle says store
 				{
+					log.debug("sending: last package of data goes in the nagle buffer");
+					
 					appWriteBuffer = Arrays.copyOfRange(data, i, i + appWriteBuffer.length);
 					appWriteBufferUsed = data.length;
 				}
 				else  // Nagle says send
 				{
+					log.debug("sending: last package of data goes on the wire");
+					
 					payload = Arrays.copyOfRange(data, i, data.length);
 					
 					dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
@@ -173,6 +189,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			}
 			else  // standard package sending
 			{
+				log.debug("sending: full package goes on the wire");
+				
 				payload = Arrays.copyOfRange(data, i, i + maxSegmentSize);
 				
 				dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
@@ -190,6 +208,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	public void addToSendBuffer(RUDP_DTAPacket packet)
 	{
+		log.debug("addToSendBuffer: trying to add, seqnr " + packet.getSeq_num());
+		
 		try
 		{
 			sendBufferFullSem.acquire();
@@ -210,9 +230,9 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 			SlidingWindowPacket swPacket = new SlidingWindowPacket(packet, 0);
 			
-			// add to send FIFO			
+			log.debug("addToSendBuffer: adding packet to FIFO, seqnr " + packet.getSeq_num());
 			
-			
+			// add to send FIFO
 			sendPacketBuffer[lastPackageWritten % sendBufferLength] = swPacket;
 			
 			sendPacketBufferElements++;
@@ -339,7 +359,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 
 		nextPackageExpected = 0;
 		lastPackageRcvd = 0;
-		maxSegmentSize = 4096;
+		maxSegmentSize = 100;
 		receiveBufferLength = 15;
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
@@ -355,6 +375,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		sendBufferFullSem = new Semaphore(sendBufferLength);
 		sendBufferEmptySem = new Semaphore(0);
 		senderAdvertisedWindow = sendBufferLength;
+		advLock = new ReentrantLock();
+		advWinFree = advLock.newCondition();
 		
 		Timer sentPacketTimeoutTimer = new Timer();
 		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
@@ -410,9 +432,15 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							currentWindow = seqNrsAvailable - (lastPackageAcked - lastPackageSent);
 					
 						if(currentWindow > senderAdvertisedWindow)
+						{
+							log.debug("senderThread: advertised window reached, blocking");
 							advWinFree.await();
+						}
 						else
+						{
+							log.debug("senderThread: advertised window free, proceeding");
 							break;
+						}
 					}
 					
 					SlidingWindowPacket swPacket;
@@ -435,6 +463,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 					IPPacket rudpDataPacketIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, swPacket.getDataPacket().getPacket());
 					
 					transportLayer.sendPacket(rudpDataPacketIP);
+					
+					log.debug("senderThread: sent packet, seqnr " + swPacket.dataPacket.getSeq_num());
 					
 					advLock.unlock();
 					
@@ -498,6 +528,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				
 				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() < lastPackageSent)
 				{
+					log.debug("receiver: got an ack for seqnr " + ackPacket.getAck_num());
+					
 					synchronized(sendPacketBuffer)
 					{
 						while(lastPackageAcked <= ackPacket.getAck_num())  // all packages < ackPacket are acked
@@ -505,6 +537,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							lastPackageAcked++;
 							if(lastPackageAcked >= seqNrsAvailable)
 								lastPackageAcked = 0;
+						
+							log.debug("receiver: removing acked packet from window, seqnr " + lastPackageAcked);
 							
 							unackedPackets--;
 							sendPacketBufferElements--;
@@ -513,11 +547,18 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 						}
 					}
 				}
+				else
+				{
+					log.debug("receiver: got an ack for a packet outside of window, ignoring");
+				}
 				
 				advLock.lock();
 				senderAdvertisedWindow = (int) ackPacket.getAvertisedWindowSize();
 				if(senderAdvertisedWindow > 0)
+				{
+					log.debug("receiver: got a new advertised window size > 0, signaling. advw " + senderAdvertisedWindow);
 					advWinFree.signal();
+				}
 				advLock.unlock();
 					
 			}
@@ -706,6 +747,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 						// whoops, timeout reached! ALARM!! re-sent and set new timeout
 						IPPacket rudpDataPacketIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, sendPacketBuffer[packetNr % sendBufferLength].getDataPacket().getPacket());
 						sendPacketBuffer[packetNr % sendBufferLength].timeout = System.currentTimeMillis() + ackTimeout;
+						
+						log.debug("sentpackagetimeoutchecker: found unacked package with timeout, retrying. seqnr" + packetNr);
 						
 						transportLayer.sendPacket(rudpDataPacketIP);
 					}
