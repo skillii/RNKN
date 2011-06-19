@@ -284,14 +284,14 @@ public class TestReceive {
 								{
 									RUDPPacket rudpPack;
 									IPPacket rudpPackIP;
-									//byte[] data = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
-									String test = "bla";
+									byte[] data = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
+									//String test = "bla";
 									byte sqz_nr = 125;
 									byte ack_nr = 0;
 									
 									//System.out.println("Vorher: " + new String(data));
 		
-									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), test.getBytes(), sqz_nr, ack_nr);
+									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data, sqz_nr, ack_nr);
 									
 									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
 									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);

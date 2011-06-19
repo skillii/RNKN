@@ -283,6 +283,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			//fill rest with nothing
 			for(; start <receiveBufferLength ; start++)
 				receivePacketBuffer[start] = null;
+			updateRecvValues();
 		}
 		
 		log.debug("return Data");
@@ -300,8 +301,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		int maxReadingBytes = appReadBLoad;
 		
 		// maxReadingBytes berechnen mit appReadBuffer + schleife ueber packete von payload( nextExpPAC -1 || nextEXPPAC == lastRCVD)
-		if(nextPackageExpected == lastPackageRcvd)
+		if(nextPackageExpected == (lastPackageRcvd+1))
 		{
+			 if(nextPackageExpected == 0)
+				 return maxReadingBytes;
+			 
 			int i=0;
 			do
 			{
@@ -310,7 +314,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			}while(i < nextPackageExpected);
 		}
 		else
-			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at i = nextPackageExpected - 2 
+			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at nextPackageExpected - 2 
 				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
 		
 		return maxReadingBytes;
@@ -564,10 +568,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 						receivePacketBuffer[diff] = dtaPacket;
 						int oldNPE = nextPackageExpected;
 						//Update nextPackageExpected & lastPackageRcvd
-						for(nextPackageExpected = 0; (receivePacketBuffer[nextPackageExpected] != null) || (nextPackageExpected == receiveBufferLength); nextPackageExpected++);
-						for(lastPackageRcvd = receiveBufferLength; (receivePacketBuffer[lastPackageRcvd] == null) || (lastPackageRcvd == -1); lastPackageRcvd--);
-						nextPackageExpected--;
-						lastPackageRcvd++;
+						updateRecvValues();
+						
 						// ACK Packages
 						if(oldNPE != nextPackageExpected)		// nextExpectedPacket changed -> dataReceived aufrufen & ACK senden
 						{
@@ -575,10 +577,9 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							sendACK(receivePacketBuffer[nextPackageExpected],advertisedWindow);
 						}
 					}				
-					log.debug("callback for DATARECEIVED");
-					
-					
+
 				}
+				log.debug("callback for DATARECEIVED");
 				callback.DataReceived();
 				
 				
@@ -595,6 +596,21 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		return (receiveBufferLength - ((nextPackageExpected -1) -lastPackageRcvd));
 	}
 	
+	/**
+	 * Updates the Values nextPackageExpected & lastPackageRcvd
+	 */
+	private void updateRecvValues()
+	{
+		for(nextPackageExpected = 0; (receivePacketBuffer[nextPackageExpected] != null) || (nextPackageExpected == receiveBufferLength-1); nextPackageExpected++);
+		for(lastPackageRcvd = receiveBufferLength; (receivePacketBuffer[lastPackageRcvd] == null) || (lastPackageRcvd == 0); lastPackageRcvd--);
+		
+		if((nextPackageExpected == (receiveBufferLength-1)) && (receivePacketBuffer[nextPackageExpected] != null))
+			nextPackageExpected++;
+		if((lastPackageRcvd == 0) && (receivePacketBuffer[lastPackageRcvd] == null))
+			lastPackageRcvd--;
+			
+		
+	}
 	/**
 	 * Calculates the real differenc between new and first package 
 	 * 
