@@ -56,7 +56,8 @@ public class RUDP_ACKPacket extends RUDPPacket {
 	      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
 	      
 	      if(checksum_should != calc_checksum)
-	        throw new PacketParsingException("Checksum failed!");
+	        throw new PacketParsingException("Checksum failed! Should:" + checksum_should 
+	         + ", is: " + calc_checksum);
 			
 	      
 	      this.checksum = calc_checksum;

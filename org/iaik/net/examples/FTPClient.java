@@ -211,7 +211,7 @@ public class FTPClient {
 							  {
 							    
 								myCallback = new FTPClientCallback(transferCondition, transferConditionLock);  
-							    myConnection = new RUDPClientConnection(34000,destAddress,remotePort, myCallback);
+							    myConnection = new RUDPClientConnection(100,destAddress,remotePort, myCallback);
 							    myCallback.setConnection(myConnection);
 							    
 							  

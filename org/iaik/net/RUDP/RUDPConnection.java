@@ -8,14 +8,14 @@ import org.iaik.net.interfaces.RUDPCallback;
 import org.iaik.net.interfaces.TransportLayer;
 import org.iaik.net.packets.IPPacket;
 import org.iaik.net.packets.rudp.*;
-<<<<<<< HEAD
+
 import org.iaik.net.utils.NetUtils;
-=======
+
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 import java.util.TimerTask;
->>>>>>> 839e7574527d5e165154d19cff1ab7bb448041f4
+
 
 public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int port;
@@ -58,8 +58,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 3000;
-	protected final int nullTimeoutValue = 15000;
+	protected final int nullCycleValue = 1000000;
+	protected final int nullTimeoutValue = 150000;
 	
 	
 	private Log log;
@@ -74,11 +74,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	/**
 	 * sends data over the established RUDPConnection
-<<<<<<< HEAD
-     */
-	public void sendData(byte[] data)
-	{
-=======
+     *
 	 * @param data byte array to send
 	 * generates data packets with Nagle algorithm
 	 * if the send buffer is full, the thread is blocked
@@ -221,7 +217,6 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		}
 		
 		sendBufferEmptySem.release();
->>>>>>> 839e7574527d5e165154d19cff1ab7bb448041f4
 	}
 	
 	/**
@@ -234,7 +229,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		int maxReadingBytes; 
 		int returnBufferLength;
 		
+		log.debug("Entered getReceived Data");
+		
 		maxReadingBytes = dataToRead();
+		
+		
 
 		
 		// returnBufferLength = min ( maxbytes , maxReadingBytes)
@@ -245,7 +244,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		byte[] returnBuffer = new byte[returnBufferLength];			//create ReturnBuffer
 		
-		// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer noch vorneschieben
+		// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer nach vorneschieben
 		if(returnBufferLength <= appReadBLoad)
 		{
 			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, returnBufferLength);
@@ -328,7 +327,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	protected void initForNewConnection()
 	{
-<<<<<<< HEAD
+
 		nextPackageExpected = 0;
 		lastPackageRcvd = 0;
 		maxSegmentSize = 4096;
@@ -337,7 +336,6 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		appReadBLoad = 0;
 		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
 
-=======
 		// sender init
 		lastPackageAcked = lastPackageSent = lastPackageWritten = lastSequenceNrSent;
 		appWriteBufferUsed = 0;  // write Buffer is empty in the beginning
@@ -353,10 +351,12 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
 
 		// NUL packet init
->>>>>>> 839e7574527d5e165154d19cff1ab7bb448041f4
 		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
 		nulDaemon.start();
 
+
+		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
+		nulDaemon.start();
 	}
 	
 	@Override
@@ -502,25 +502,32 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				callback.ConnectionClosed(ConnectionCloseReason.RSTbyPeer);
 			}
 			
-			else if(packet instanceof RUDP_DTAPacket)					// a Data Packet
+			else if(packet instanceof RUDP_DTAPacket)					// a Data Package
 			{
+				log.debug("Entered  Packed Buffering");
+				
 				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
 				int diff;
 				int advertisedWindow;
 				
 				if(receivePacketBuffer[0] == null)
 				{
+					log.debug("Packed Buffering: store first Packed");
 					receivePacketBuffer[0] = dtaPacket;
+					advertisedWindow = calcAdvWinSize();
+					sendACK(packet,advertisedWindow);
 					
 				}
 				else
 				{
+					log.debug("Packed Buffering: calc diff");
 					// neue pos sequenzdiff
 					diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
 
 					// diff<0 send ack throw away
 					if(diff < 0)
 					{
+						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
 						advertisedWindow = calcAdvWinSize();
 						sendACK(packet,advertisedWindow);
 						return;						
@@ -528,8 +535,10 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 					
 					// diff > max buffline throw away
 					if(diff > receiveBufferLength)
+					{
+						log.error("Packet Buffer: Offerflow!");
 						return;
-					
+					}
 					// speichern, updaten von nextExpectedPacket und lastRcvdpacket
 					else
 					{
@@ -547,9 +556,11 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							sendACK(receivePacketBuffer[nextPackageExpected],advertisedWindow);
 						}
 					}				
+					log.debug("callback for DATARECEIVED");
 					
-					callback.DataReceived();
+					
 				}
+				callback.DataReceived();
 				
 				
 			}

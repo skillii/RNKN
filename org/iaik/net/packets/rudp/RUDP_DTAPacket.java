@@ -97,14 +97,16 @@ public class RUDP_DTAPacket extends RUDPPacket {
         pkg[8] = 0;
         pkg[9] = 0;
         
-        NetUtils.insertData(pkg, this.payload, 10);
+        //NetUtils.insertData(pkg, this.payload, 10);
 
+        System.arraycopy(this.payload, 0, pkg, 10, this.payload.length);
+        
             
         short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
         
 		this.checksum = calc_checksum;
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 22);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 8);
 		
 		return pkg;
 	}
