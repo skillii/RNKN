@@ -212,8 +212,10 @@ public class TestReceive {
 									public void DataReceived() {
 										System.out.println("Received Data: \n");
 										byte[] spam;
-										while(connection.dataToRead()!=0)
-										{System.out.println("stuff");
+										int count;
+										while((count = connection.dataToRead())!=0)
+										{  System.out.println("To read: " + Integer.toString(count));
+										 
 											spam = connection.getReceivedData(5);
 											for(int i=0; i<5 ; i++)
 											{
