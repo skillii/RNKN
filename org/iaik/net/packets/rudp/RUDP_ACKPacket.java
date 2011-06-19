@@ -42,16 +42,16 @@ public class RUDP_ACKPacket extends RUDPPacket {
 		  this.dest_port = NetUtils.bytesToShort(packet, 2);
 	      this.src_port = NetUtils.bytesToShort(packet, 4);
 		  
-	      this.seq_num = packet[6];
-	      this.ack_num = packet[7];
+	      this.seq_num = packet[5];
+	      this.ack_num = packet[6];
 	      System.out.println("ack nr:" + ack_num);
 
-	      this.advertised_window_size = packet[8];
+	      this.advertised_window_size = packet[7];
 	      
-	      short checksum_should = NetUtils.bytesToShort(packet, 9);
+	      short checksum_should = NetUtils.bytesToShort(packet, 8);
 	      
+	      packet[8] = 0;
 	      packet[9] = 0;
-	      packet[10] = 0;
 	      
 	      short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
 	      
