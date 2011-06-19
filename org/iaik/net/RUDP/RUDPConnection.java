@@ -643,7 +643,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	private void updateRecvValues()
 	{
 		for(nextPackageExpected = 0; (receivePacketBuffer[nextPackageExpected] != null) || (nextPackageExpected == receiveBufferLength-1); nextPackageExpected++);
-		for(lastPackageRcvd = receiveBufferLength; (receivePacketBuffer[lastPackageRcvd] == null) || (lastPackageRcvd == 0); lastPackageRcvd--);
+		for(lastPackageRcvd = receiveBufferLength - 1; (receivePacketBuffer[lastPackageRcvd] == null) || (lastPackageRcvd == 0); lastPackageRcvd--);
 		log.debug("Update of nextPackageExpected: " + nextPackageExpected);
 		log.debug("Update of lastPackageRcvd: " + lastPackageRcvd);
 		if((nextPackageExpected == (receiveBufferLength-1)) && (receivePacketBuffer[nextPackageExpected] != null))
