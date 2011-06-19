@@ -271,7 +271,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		if(returnBufferLength <= appReadBLoad)
 		{
 			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, returnBufferLength);
-			appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
+			//appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
+			appReadBLoad = appReadBLoad -returnBufferLength;
 			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);
 		}
 		

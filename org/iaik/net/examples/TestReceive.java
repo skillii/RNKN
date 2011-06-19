@@ -213,7 +213,8 @@ public class TestReceive {
 										System.out.println("Received Data: \n");
 										byte[] spam;
 										int count;
-										while((count = connection.dataToRead())!=0)
+										int a=1;
+										while(((count = connection.dataToRead())!=0)&& (a++ < 10))
 										{  System.out.println("To read: " + Integer.toString(count));
 										 
 											spam = connection.getReceivedData(5);
