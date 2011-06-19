@@ -286,14 +286,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);		//clean  appReadBuffer (fill a empty buffer with nothing)
 			int i;
 			
-			for(i=0; (offset + NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) ) < returnBufferLength; i++ )	//Load whole packages to receiveBuffer
+			for(i=0; (offset + receivePacketBuffer[i].getPayload().length) < returnBufferLength; i++ )	//Load whole packages to receiveBuffer
 			{
 				returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset);
-				offset += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+				offset += receivePacketBuffer[i].getPayload().length;
 			}
 			
 			returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset, (returnBufferLength-offset));		// Load data from the package which must be splitted
-			appReadBLoad = (NetUtils.toInt(receivePacketBuffer[i].getPacket_length()) - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
+			appReadBLoad = (receivePacketBuffer[i].getPayload().length - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
 			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, (returnBufferLength+offset), appReadBLoad );
 			
 			i++;
@@ -330,13 +330,13 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			int i=0;
 			do
 			{
-				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+				maxReadingBytes += receivePacketBuffer[i].getPayload().length;
 				 i++;
 			}while(i < nextPackageExpected);
 		}
 		else
 			for(int i=0; i < (nextPackageExpected-1); i++)			// stops at nextPackageExpected - 2 
-				maxReadingBytes += NetUtils.toInt(receivePacketBuffer[i].getPacket_length());
+				maxReadingBytes += receivePacketBuffer[i].getPayload().length;
 		
 		return maxReadingBytes;
 	}
@@ -579,6 +579,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 					receivePacketBuffer[0] = dtaPacket;
 					advertisedWindow = calcAdvWinSize();
 					sendACK(packet,advertisedWindow);
+					updateRecvValues();
 					
 				}
 				else
@@ -643,7 +644,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	{
 		for(nextPackageExpected = 0; (receivePacketBuffer[nextPackageExpected] != null) || (nextPackageExpected == receiveBufferLength-1); nextPackageExpected++);
 		for(lastPackageRcvd = receiveBufferLength; (receivePacketBuffer[lastPackageRcvd] == null) || (lastPackageRcvd == 0); lastPackageRcvd--);
-		
+		log.debug("Update of nextPackageExpected: " + nextPackageExpected);
+		log.debug("Update of lastPackageRcvd: " + lastPackageRcvd);
 		if((nextPackageExpected == (receiveBufferLength-1)) && (receivePacketBuffer[nextPackageExpected] != null))
 			nextPackageExpected++;
 		if((lastPackageRcvd == 0) && (receivePacketBuffer[lastPackageRcvd] == null))

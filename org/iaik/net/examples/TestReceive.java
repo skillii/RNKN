@@ -217,7 +217,7 @@ public class TestReceive {
 											spam = connection.getReceivedData(5);
 											for(int i=0; i<5 ; i++)
 											{
-												System.out.println(spam[i]);
+												System.out.println(String.valueOf(spam[i]));
 											}										
 											
 										}
