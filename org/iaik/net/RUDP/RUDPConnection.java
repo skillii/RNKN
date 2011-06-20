@@ -499,6 +499,31 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected abstract void connectPhasePacketReceived(RUDPPacket packet, String srcIP);
 	
 	/**
+	 * checks if the given ack number is in the current sliding window
+	 * @param ackNr the ack number to check
+	 * @return true if inside window, false otherwise
+	 */
+	protected boolean ackIsInWindow(byte bAckNr)
+	{
+		int ackNr = NetUtils.toInt(bAckNr);
+		
+		if(lastPackageAcked < lastPackageSent)
+		{
+			if(ackNr > lastPackageAcked && ackNr <= lastPackageSent)
+				return true;
+		}
+		else if(lastPackageAcked > lastPackageSent)
+		{
+			if(ackNr > lastPackageAcked && ackNr < seqNrsAvailable)
+				return true;
+			else if(ackNr >= 0 && ackNr <= lastPackageSent)
+				return true;
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * This method will be called by TransportLayer, when a new Packet for this Connection arrives.
 	 */
 	public void packetReceived(RUDPPacket packet, String srcIP)
@@ -523,13 +548,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			{
 				RUDP_ACKPacket ackPacket = (RUDP_ACKPacket) packet;
 				
-				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() <= lastPackageSent)
+				if(ackIsInWindow(ackPacket.getAck_num()))
 				{
 					log.debug("receiver: got an ack for seqnr " + ackPacket.getAck_num());
 					
 					synchronized(sendPacketBuffer)
 					{
-						while(lastPackageAcked < ackPacket.getAck_num())  // all packages < ackPacket are acked
+						while(lastPackageAcked < ackPacket.getAck_num() || 
+							  (lastPackageAcked < seqNrsAvailable && lastPackageAcked > ackPacket.getAck_num()))  // all packages < ackPacket are acked
 						{
 							lastPackageAcked++;
 							if(lastPackageAcked >= seqNrsAvailable)
@@ -562,7 +588,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				}
 				else
 				{
-					log.debug("receiver: got an ack for a packet outside of window, ignoring");
+					log.debug("receiver: got an ack for a packet outside of window, ignoring, seqnr " + ackPacket.getAck_num());
 				}
 				
 				advLock.lock();

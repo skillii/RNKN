@@ -227,7 +227,7 @@ public class EthernetPacket implements Packet {
 
 			frameType = NetUtils.bytesToShort(header, 12);
 
-			log.debug("Ethernet header successful parsed.");
+			//log.debug("Ethernet header successful parsed.");
 
 		} else
 			throw new PacketParsingException("Header must not be null!");

@@ -421,7 +421,7 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 			{
 				//parse the ICMP packet
 				icmp = ICMPPacket.createICMPPacket(packet);
-				System.out.print(icmp.getInfo());
+				//System.out.print(icmp.getInfo());
 			}
 			catch(PacketParsingException ex)
 			{

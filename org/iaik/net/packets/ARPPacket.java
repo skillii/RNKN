@@ -102,7 +102,7 @@ public class ARPPacket implements Packet {
 	    this.tha  = packet.getDestinationAddress();
 	    this.tpa  = NetUtils.toIPAddress(NetUtils.getFromByteArray(arp_pack, 24, 4),true);
 	    
-	    log.debug(this.getInfo());
+	    //log.debug(this.getInfo());
 	    
 	  }
 
