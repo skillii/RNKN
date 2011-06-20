@@ -643,7 +643,7 @@ public class IPPacket implements Packet {
 		int payloadLen;
 		
 		headerLen = (packet.getPayload()[0] & 0x0f)*4;
-		payloadLen = (packet.getPayload()[2]<<8 | packet.getPayload()[3]) - headerLen;
+		payloadLen = (short)((packet.getPayload()[2]<<8 | packet.getPayload()[3]) - headerLen);
 		
 		byte[] header = new byte[headerLen];
 		byte[] payload = new byte[payloadLen];
