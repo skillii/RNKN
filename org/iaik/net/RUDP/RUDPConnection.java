@@ -518,13 +518,13 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			{
 				RUDP_ACKPacket ackPacket = (RUDP_ACKPacket) packet;
 				
-				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() < lastPackageSent)
+				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() <= lastPackageSent)
 				{
 					log.debug("receiver: got an ack for seqnr " + ackPacket.getAck_num());
 					
 					synchronized(sendPacketBuffer)
 					{
-						while(lastPackageAcked <= ackPacket.getAck_num())  // all packages < ackPacket are acked
+						while(lastPackageAcked < ackPacket.getAck_num())  // all packages < ackPacket are acked
 						{
 							lastPackageAcked++;
 							if(lastPackageAcked >= seqNrsAvailable)
