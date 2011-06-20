@@ -37,6 +37,8 @@ public class FTPClientCallback implements RUDPClientCallback {
 	
 	public FTPClientCallback(Condition transferCondition, Lock transferConditionLock)
 	{
+	  this.transferCondition = transferCondition;
+	  this.transferConditionLock = transferConditionLock;
 	}
 	
 	public void setConnection(RUDPClientConnection conn)

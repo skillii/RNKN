@@ -117,7 +117,7 @@ public class FTPClient {
 						
 						if(command.equals("list"))  // list files on server
 						{
-						  FTPCmdListFiles cmd = new FTPCmdListFiles("");	
+						  FTPCmdListFiles cmd = new FTPCmdListFiles("gimme_list");	
 						  
 						  
 						  ((FTPClientCallback)myCallback).setCallbackState(ClientCallbackState.AwaitingFileList);
@@ -135,7 +135,7 @@ public class FTPClient {
 						  {
 							System.out.println("Loading file list completed\n");
 							System.out.println("===========================\n");
-							System.out.println(myCallback.getReceivedData().toString());
+							System.out.println(new String(myCallback.getReceivedData()));
 						  }
 						}
 						else if(command.equals("get"))

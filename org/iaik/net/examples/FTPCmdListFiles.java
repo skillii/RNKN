@@ -1,12 +1,14 @@
 package org.iaik.net.examples;
 
 import org.iaik.net.utils.NetUtils;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class FTPCmdListFiles extends FTPCommand {
 	
 	String fileList;
 	int sizeOfData;
+	Log log;
 
 	@Override
 	public byte[] getCommand() {
@@ -17,7 +19,10 @@ public class FTPCmdListFiles extends FTPCommand {
 		byte[] pkg = new byte[arrayToString.length + 5];
 		
 		pkg[0] = this.identifier;
-		NetUtils.insertData(pkg, NetUtils.intToBytes(size), 1);
+		
+		byte[] size_in_bytes = NetUtils.intToBytes(size);
+
+		System.arraycopy(size_in_bytes, 0, pkg, 1, size_in_bytes.length);
 		System.arraycopy(arrayToString, 0, pkg, 5, arrayToString.length);
 		
 		return pkg;
@@ -26,6 +31,7 @@ public class FTPCmdListFiles extends FTPCommand {
 	
 	public FTPCmdListFiles(String files)
 	{
+	  this.log = LogFactory.getLog(this.getClass());
 	  this.fileList = files;
 	  this.identifier = FTPCommand.LIST_FILE_IDENTIFIER;
 	}
@@ -47,6 +53,7 @@ public class FTPCmdListFiles extends FTPCommand {
 	
 	public FTPCmdListFiles(String[] files)
 	{
+	  
 	  StringBuilder fileBuilder = new StringBuilder();
 	  
 	  for(String i: files)
@@ -64,6 +71,8 @@ public class FTPCmdListFiles extends FTPCommand {
 	  this.identifier = packet[0];
 
 	  this.sizeOfData = NetUtils.bytesToInt(packet, 1);
+	  
+	  log.info("size of data is " + Integer.toString(this.sizeOfData));
 	  
 	  byte[] data = new byte[this.sizeOfData];
 	  
