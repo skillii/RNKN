@@ -671,7 +671,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	protected int calcAdvWinSize()
 	{
-		return (receiveBufferLength - ((nextPackageExpected -1) -lastPackageRcvd));
+		updateRecvValues();
+		return (receiveBufferLength - (nextPackageExpected -1));
 	}
 	
 	/**
