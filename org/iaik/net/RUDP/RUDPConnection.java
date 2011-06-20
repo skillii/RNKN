@@ -728,6 +728,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	private void sendACK(RUDPPacket packet, int adveWinSize)
 	{
+		this.log.debug("Sending ACK, Ack num = " + Byte.toString(packet.getSeq_num()));
 		RUDPPacket rudpPack;
 		IPPacket rudpPackIP;
 		rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)0, (byte)(packet.getSeq_num()), (byte)adveWinSize);
