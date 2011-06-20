@@ -385,7 +385,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		advWinFree = advLock.newCondition();
 		
 		Timer sentPacketTimeoutTimer = new Timer();
-		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
+		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), 1000, ackTimeoutCheckInterval);
 
 		// NUL packet init
 		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
