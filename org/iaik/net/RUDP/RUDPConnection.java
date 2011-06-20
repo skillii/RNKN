@@ -46,7 +46,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int lastPackageWritten;
 	protected final int seqNrsAvailable = 128;
 	protected final int sendBufferLength = 16;
-	protected final int ackTimeout = 3000;  // ACK-Timeout in ms
+	protected final int ackTimeout = 30000;  // ACK-Timeout in ms
 	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
 	protected int appWriteBufferUsed;
 	protected byte[] appWriteBuffer;  // Nagle-Buffer for incomplete packages

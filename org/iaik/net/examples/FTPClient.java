@@ -160,7 +160,7 @@ public class FTPClient {
 							{
 							  System.out.println(myCallback.getErrorMessage());	  
 							}
-							else if(myCallback.getCallbackState() == ClientCallbackState.FileListComplete)
+							else if(myCallback.getCallbackState() == ClientCallbackState.FileComplete)
 							{
 						      System.out.println("Downloading File completed\n");
 							  System.out.println("===========================\n");

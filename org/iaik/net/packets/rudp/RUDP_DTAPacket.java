@@ -29,8 +29,6 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	  
 	  this.packet_length = Short.parseShort(Integer.toString(11 + payload.length)); 
 	  
-	  System.out.println("payload:" + new String(this.payload));
-	  
 	}
 	
 	private RUDP_DTAPacket(byte packet[]) throws PacketParsingException
