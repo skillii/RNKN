@@ -368,7 +368,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	{
 		// receiver init
 		nextPackageExpected = 0;
-		lastPackageRcvd = -1;
+		lastPackageRcvd = 0;
 		maxSegmentSize = 100;
 		receiveBufferLength = 15;
 		appReadBuffer = new byte[maxSegmentSize]; 
@@ -585,14 +585,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				{
 					diff = sequenceDiff(dtaPacket.getSeq_num(), (byte)(lastUsedSequenceNr));
 					
-					if(diff <= 0)
+					if(diff < 0)
 					{
 						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
 						advertisedWindow = calcAdvWinSize();
 						sendACK(packet,advertisedWindow);
 						return;						
 					}
-					if((nextPackageExpected == 0) && (lastPackageRcvd == -1))
+					if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
 						receivePacketBuffer[0] = dtaPacket;
 					else
 						receivePacketBuffer[diff] = dtaPacket;
