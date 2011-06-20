@@ -46,7 +46,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int lastPackageWritten;
 	protected final int seqNrsAvailable = 128;
 	protected final int sendBufferLength = 16;
-	protected final int ackTimeout = 30000;  // ACK-Timeout in ms
+	protected final int ackTimeout = 300000;  // ACK-Timeout in ms
 	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
 	protected int appWriteBufferUsed;
 	protected byte[] appWriteBuffer;  // Nagle-Buffer for incomplete packages
@@ -728,12 +728,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	private void sendACK(RUDPPacket packet, int adveWinSize)
 	{
+		log.debug("sendACK: entering, seqnr " + packet.getSeq_num());
 		RUDPPacket rudpPack;
 		IPPacket rudpPackIP;
 		rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)0, (byte)(packet.getSeq_num()), (byte)adveWinSize);
 		
 		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 		transportLayer.sendPacket(rudpPackIP);
+		log.debug("sendACK: leaving");
 	}
 	
 	/**

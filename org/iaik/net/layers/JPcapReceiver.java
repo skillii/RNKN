@@ -111,7 +111,7 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 		try {
 			EthernetPacket p = EthernetPacket.createEthernetPacket(capturedPacket.header, capturedPacket.data);
 
-			log.debug("Packet on wire:\n" + p.getInfo());
+			//log.debug("Packet on wire:\n" + p.getInfo());
 
 			/**
 			 * Test if the packet is of a recognized type and does belong to us.
@@ -166,7 +166,7 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 						// processing.
 						receiveBuffer.add(ip);
 
-						log.info(ip.getInfo());
+						//log.info(ip.getInfo());
 					} else {
 						log.debug("Received the same packet twice!");
 					}
@@ -180,7 +180,7 @@ public class JPcapReceiver extends Thread implements PacketReceiver {
 
 			} else {
 				log.debug("Unknown or not handled packet format!");
-				log.debug(p.getInfo());
+				//log.debug(p.getInfo());
 			}
 
 		} catch (PacketParsingException pae) {
