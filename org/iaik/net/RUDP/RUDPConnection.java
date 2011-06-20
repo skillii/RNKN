@@ -251,70 +251,75 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	 */
 	public byte[] getReceivedData(int maxbytes)
 	{
-		int maxReadingBytes; 
-		int returnBufferLength;
-		
-		log.debug("Entered getReceived Data");
-		
-		maxReadingBytes = dataToRead();
-		
-		
-
-		
-		// returnBufferLength = min ( maxbytes , maxReadingBytes)
-		if(maxbytes > maxReadingBytes)
-			returnBufferLength = maxReadingBytes;
-		else
-			returnBufferLength = maxbytes;
-		
-		byte[] returnBuffer = new byte[returnBufferLength];			//create ReturnBuffer
-		
-		// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer nach vorneschieben
-		if(returnBufferLength <= appReadBLoad)
+		synchronized(receivePacketBuffer)
 		{
-			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, returnBufferLength);
-			//appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
-			appReadBLoad = appReadBLoad -returnBufferLength;
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);
-		}
-		
-		// else 
-		// 		appReadBuffer in returnBuffer kopieren, ggf. in schleife von packeten weiter in returnBuffer 
-		//	letztes Packet in schleife unvollstaendig gelesen rest in appread buffer
-		else
-		{
-			returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, appReadBLoad);			//Load content from appReadBuffer to returnBuffer
-			int offset = appReadBLoad;
-			appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);		//clean  appReadBuffer (fill a empty buffer with nothing)
-			int i;
+			int maxReadingBytes; 
+			int returnBufferLength;
 			
-			for(i=0; (offset + receivePacketBuffer[i].getPayload().length) < returnBufferLength; i++ )	//Load whole packages to receiveBuffer
+			log.debug("Entered getReceived Data");
+			
+			maxReadingBytes = dataToRead();
+			
+			
+	
+			
+			// returnBufferLength = min ( maxbytes , maxReadingBytes)
+			if(maxbytes > maxReadingBytes)
+				returnBufferLength = maxReadingBytes;
+			else
+				returnBufferLength = maxbytes;
+			
+			byte[] returnBuffer = new byte[returnBufferLength];			//create ReturnBuffer
+			
+			// if returnBuffer <= AppReadBuffer fuelle returnBuffer mit appReadBuffer nach vorneschieben
+			if(returnBufferLength <= appReadBLoad)
 			{
-				returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset);
-				offset += receivePacketBuffer[i].getPayload().length;
+				returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, returnBufferLength);
+				//appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
+				appReadBLoad = appReadBLoad -returnBufferLength;
+				appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);
 			}
 			
-			returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset, (returnBufferLength-offset));		// Load data from the package which must be splitted
-			appReadBLoad = (receivePacketBuffer[i].getPayload().length - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, ( receivePacketBuffer[i].getPayload().length-appReadBLoad), appReadBLoad );
+			// else 
+			// 		appReadBuffer in returnBuffer kopieren, ggf. in schleife von packeten weiter in returnBuffer 
+			//	letztes Packet in schleife unvollstaendig gelesen rest in appread buffer
+			else
+			{
+				returnBuffer = NetUtils.insertData(returnBuffer,  appReadBuffer, 0, appReadBLoad);			//Load content from appReadBuffer to returnBuffer
+				int offset = appReadBLoad;
+				appReadBLoad = (maxSegmentSize-returnBufferLength)-1;
+				appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], appReadBuffer, 0, returnBufferLength, appReadBLoad);		//clean  appReadBuffer (fill a empty buffer with nothing)
+				int i;
+				
+				for(i=0; (offset + receivePacketBuffer[i].getPayload().length) < returnBufferLength; i++ )	//Load whole packages to receiveBuffer
+				{
+					returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset);
+					offset += receivePacketBuffer[i].getPayload().length;
+				}
+				
+				returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset, (returnBufferLength-offset));		// Load data from the package which must be splitted
+				appReadBLoad = (receivePacketBuffer[i].getPayload().length - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
+				appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, ( receivePacketBuffer[i].getPayload().length-appReadBLoad), appReadBLoad );
+				
+				lastUsedSequenceNr = NetUtils.toInt(receivePacketBuffer[nextPackageExpected-1].getSeq_num());
+				
+				i++;
+				// shift the packages through the receivePacketBuffer
+				int start, shifty;
+				for( start=0, shifty=i; shifty<receiveBufferLength ; shifty++, start++ )
+					receivePacketBuffer[start] = receivePacketBuffer[shifty];
+				//fill rest with nothing
+				for(; start <receiveBufferLength ; start++)
+					receivePacketBuffer[start] = null;
+				updateRecvValues();
+			}
 			
-			lastUsedSequenceNr = NetUtils.toInt(receivePacketBuffer[nextPackageExpected-1].getSeq_num());
+			log.debug("return Data");
 			
-			i++;
-			// shift the packages through the receivePacketBuffer
-			int start, shifty;
-			for( start=0, shifty=i; shifty<receiveBufferLength ; shifty++, start++ )
-				receivePacketBuffer[start] = receivePacketBuffer[shifty];
-			//fill rest with nothing
-			for(; start <receiveBufferLength ; start++)
-				receivePacketBuffer[start] = null;
-			updateRecvValues();
+			
+			//return the data
+			return returnBuffer;
 		}
-		
-		log.debug("return Data");
-		//return the data
-		return returnBuffer;
 	}
 	/**
 	 * dataToRead() returns the an integer value with the number of Bytes to read
@@ -615,78 +620,86 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			
 			else if(packet instanceof RUDP_DTAPacket)					// a Data Package
 			{
-				log.debug("Entered  Packed Buffering");
-				
-				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
-				int diff;
-				int advertisedWindow;
-				log.debug("Packed Buffering: calc diff");
-				
-				
-				if(receivePacketBuffer[0] == null)
+				synchronized(receivePacketBuffer)
 				{
-					diff = sequenceDiff(dtaPacket.getSeq_num(), (byte)(lastUsedSequenceNr));
+					log.debug("Entered  Packed Buffering");
 					
-					if(diff < 0)
-					{
-						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
-						advertisedWindow = calcAdvWinSize();
-						sendACK(packet,advertisedWindow);
-						return;						
-					}
-					/*if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
-						receivePacketBuffer[0] = dtaPacket;
-					else*/
-						receivePacketBuffer[diff] = dtaPacket;
-					advertisedWindow = calcAdvWinSize();
-					sendACK(packet,advertisedWindow);
-					updateRecvValues();
-					
-				}
-				else
-				{
+					RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
+					int diff;
+					int advertisedWindow;
 					log.debug("Packed Buffering: calc diff");
-					diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
 					
-					// neue pos sequenzdiff
 					
-
-					// diff<0 send ack throw away
-					if(diff < 0)
+					if(receivePacketBuffer[0] == null)
 					{
-						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
+						diff = sequenceDiff(dtaPacket.getSeq_num(), (byte)(lastUsedSequenceNr));
+						
+						if(diff < 0)
+						{
+							log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
+							advertisedWindow = calcAdvWinSize();
+							sendACK(packet,advertisedWindow);
+							return;						
+						}
+						if(diff >= receiveBufferLength)
+						{
+							log.error("Packet Buffer: Offerflow!");
+							return;
+						}
+						
+						/*if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
+							receivePacketBuffer[0] = dtaPacket;
+						else*/
+							receivePacketBuffer[diff] = dtaPacket;
 						advertisedWindow = calcAdvWinSize();
 						sendACK(packet,advertisedWindow);
-						return;						
-					}
-					
-					// diff > max buffline throw away
-					if(diff >= receiveBufferLength)
-					{
-						log.error("Packet Buffer: Offerflow!");
-						return;
-					}
-					// speichern, updaten von nextExpectedPacket und lastRcvdpacket
-					else
-					{
-						receivePacketBuffer[diff] = dtaPacket;
-						int oldNPE = nextPackageExpected;
-						//Update nextPackageExpected & lastPackageRcvd
 						updateRecvValues();
 						
-						// ACK Packages
-						if(oldNPE != nextPackageExpected)		// nextExpectedPacket changed -> dataReceived aufrufen & ACK senden
+					}
+					else
+					{
+						log.debug("Packed Buffering: calc diff");
+						diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
+						
+						// neue pos sequenzdiff
+						
+	
+						// diff<0 send ack throw away
+						if(diff < 0)
 						{
+							log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
 							advertisedWindow = calcAdvWinSize();
-							sendACK(receivePacketBuffer[nextPackageExpected-1],advertisedWindow);
+							sendACK(packet,advertisedWindow);
+							return;						
 						}
-					}				
-
+						
+						// diff > max buffline throw away
+						if(diff >= receiveBufferLength)
+						{
+							log.error("Packet Buffer: Offerflow!");
+							return;
+						}
+						// speichern, updaten von nextExpectedPacket und lastRcvdpacket
+						else
+						{
+							receivePacketBuffer[diff] = dtaPacket;
+							int oldNPE = nextPackageExpected;
+							//Update nextPackageExpected & lastPackageRcvd
+							updateRecvValues();
+							
+							// ACK Packages
+							if(oldNPE != nextPackageExpected)		// nextExpectedPacket changed -> dataReceived aufrufen & ACK senden
+							{
+								advertisedWindow = calcAdvWinSize();
+								sendACK(receivePacketBuffer[nextPackageExpected-1],advertisedWindow);
+							}
+						}				
+	
+					}
 				}
 				log.debug("callback for DATARECEIVED");
 				callback.DataReceived();
-				log.debug("out of DATARECEIVED");
-				
+				log.debug("out of DATARECEIVED");				
 			}
 
 		}
@@ -737,6 +750,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			diff = seqNrsAvailable - ib2 + ib1;
 			if(diff >= seqNrsAvailable)
 				diff = diff-seqNrsAvailable;
+			if((nextPackageExpected == 0 ) && (lastPackageRcvd == -1))
+				diff--;
 		}
 		else 
 		{
@@ -744,7 +759,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			if(nextPackageExpected == 0)
 				diff--;
 		}
-		
+				
 		return diff;
 	}
 	
