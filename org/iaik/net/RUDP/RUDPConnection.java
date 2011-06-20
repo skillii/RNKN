@@ -46,7 +46,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected int lastPackageWritten;
 	protected final int seqNrsAvailable = 128;
 	protected final int sendBufferLength = 16;
-	protected final int ackTimeout = 30000;  // ACK-Timeout in ms
+	protected final int ackTimeout = 300000;  // ACK-Timeout in ms
 	protected final int ackTimeoutCheckInterval = 100;  // ACK-Timeout Check Interval in ms
 	protected int appWriteBufferUsed;
 	protected byte[] appWriteBuffer;  // Nagle-Buffer for incomplete packages
@@ -369,7 +369,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		// receiver init
 		nextPackageExpected = 0;
 		lastPackageRcvd = 0;
-		maxSegmentSize = 100;
+		//maxSegmentSize = 100;
 		receiveBufferLength = 15;
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
@@ -499,6 +499,31 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected abstract void connectPhasePacketReceived(RUDPPacket packet, String srcIP);
 	
 	/**
+	 * checks if the given ack number is in the current sliding window
+	 * @param ackNr the ack number to check
+	 * @return true if inside window, false otherwise
+	 */
+	protected boolean ackIsInWindow(byte bAckNr)
+	{
+		int ackNr = NetUtils.toInt(bAckNr);
+		
+		if(lastPackageAcked < lastPackageSent)
+		{
+			if(ackNr > lastPackageAcked && ackNr <= lastPackageSent)
+				return true;
+		}
+		else if(lastPackageAcked > lastPackageSent)
+		{
+			if(ackNr > lastPackageAcked && ackNr < seqNrsAvailable)
+				return true;
+			else if(ackNr >= 0 && ackNr <= lastPackageSent)
+				return true;
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * This method will be called by TransportLayer, when a new Packet for this Connection arrives.
 	 */
 	public void packetReceived(RUDPPacket packet, String srcIP)
@@ -523,13 +548,14 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			{
 				RUDP_ACKPacket ackPacket = (RUDP_ACKPacket) packet;
 				
-				if(ackPacket.getAck_num() > lastPackageAcked && ackPacket.getAck_num() <= lastPackageSent)
+				if(ackIsInWindow(ackPacket.getAck_num()))
 				{
 					log.debug("receiver: got an ack for seqnr " + ackPacket.getAck_num());
 					
 					synchronized(sendPacketBuffer)
 					{
-						while(lastPackageAcked < ackPacket.getAck_num())  // all packages < ackPacket are acked
+						while(lastPackageAcked < ackPacket.getAck_num() || 
+							  (lastPackageAcked < seqNrsAvailable && lastPackageAcked > ackPacket.getAck_num()))  // all packages < ackPacket are acked
 						{
 							lastPackageAcked++;
 							if(lastPackageAcked >= seqNrsAvailable)
@@ -562,7 +588,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				}
 				else
 				{
-					log.debug("receiver: got an ack for a packet outside of window, ignoring");
+					log.debug("receiver: got an ack for a packet outside of window, ignoring, seqnr " + ackPacket.getAck_num());
 				}
 				
 				advLock.lock();
@@ -635,7 +661,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 					}
 					
 					// diff > max buffline throw away
-					if(diff > receiveBufferLength)
+					if(diff >= receiveBufferLength)
 					{
 						log.error("Packet Buffer: Offerflow!");
 						return;
@@ -730,6 +756,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	private void sendACK(RUDPPacket packet, int adveWinSize)
 	{
 		this.log.debug("Sending ACK, Ack num = " + Byte.toString(packet.getSeq_num()));
+
 		RUDPPacket rudpPack;
 		IPPacket rudpPackIP;
 		rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)0, (byte)(packet.getSeq_num()), (byte)adveWinSize);
@@ -737,6 +764,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		
 		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 		transportLayer.sendPacket(rudpPackIP);
+		log.debug("sendACK: leaving");
 	}
 	
 	/**

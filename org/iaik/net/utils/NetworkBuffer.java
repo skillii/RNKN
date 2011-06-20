@@ -87,7 +87,7 @@ public class NetworkBuffer {
 		synchronized (bufferMonitor) {
 			if (!buffer.isEmpty())
 				buffer.remove(p);
-			log.info("Packet " + p.getInfo() + " removed from the buffer!");
+			//log.info("Packet " + p.getInfo() + " removed from the buffer!");
 		}
 	}
 	

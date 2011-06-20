@@ -35,7 +35,7 @@ public class DefaultTransportLayer implements TransportLayer {
 
 	@Override
 	public void process(IPPacket packet) {
-		log.debug("incoming packet, protocol:" + packet.getProtocol());
+		//log.debug("incoming packet, protocol:" + packet.getProtocol());
 		
 		if(packet.getProtocol() == IPPacket.RUDP_PROTOCOL)
 		{
