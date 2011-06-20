@@ -538,6 +538,22 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							sendBufferFullSem.release();
 						}
 					}
+					
+					// check if theres any more data in flight, if not send nagle buffer
+					if(unackedPackets <= 0)
+					{
+						if(appWriteBufferUsed > 0)  // theres data to send in the nagle buffer
+						{
+							log.debug("receiver: got last outstanding ack and theres something in nagle buffer, sending");
+							
+							byte[] payload = Arrays.copyOfRange(appWriteBuffer, 0, appWriteBufferUsed);
+							appWriteBufferUsed = 0;
+							
+							RUDP_DTAPacket dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+							
+							addToSendBuffer(dataPacket);
+						}
+					}
 				}
 				else
 				{
