@@ -116,13 +116,13 @@ public class RUDPServerConnection extends RUDPConnection {
 			return;
 		}
 		
+		initForNewConnection();
 		state = ServerState.Connected;
 		
 		connectTimer.cancel();
 		connectConditionLock.unlock();
 		
 		log.debug("We're connected now!!!");
-		initForNewConnection();
 		serverCallback.clientConnected(remoteIP);
 	}
 	
