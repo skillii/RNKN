@@ -28,6 +28,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected TransportLayer transportLayer;
 	
 	//---Receive values---
+	protected byte nextSeqExpected;
 	protected int nextPackageExpected;
 	protected int lastPackageRcvd;
 	protected int maxSegmentSize;

@@ -112,9 +112,18 @@ public class RUDPServerConnection extends RUDPConnection {
 			//retry...
 			log.warn("connectTimeoutReached reached, while waiting for ACK");
 			state = ServerState.AwaitingConnection;
+			
+			//Send a RST, so that the host knows, that the connection is dead
+			rudpPack = new RUDP_RSTPacket((short)remotePort, (short)port, (byte)0,(byte)0);
+			
+			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
+			transportLayer.sendPacket(rudpPackIP);
+			
 			connectConditionLock.unlock();
 			return;
 		}
+		
+		nextSeqExpected = (byte)(connectPacket.getSeq_num() + 1);
 		
 		initForNewConnection();
 		state = ServerState.Connected;

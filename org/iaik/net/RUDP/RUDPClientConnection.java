@@ -153,6 +153,8 @@ public class RUDPClientConnection extends RUDPConnection {
 			rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 			transportLayer.sendPacket(rudpPackIP);
 			
+			nextSeqExpected = (byte)(synAckReceived.getSeq_num() + 1);
+			
 
 			state = ClientState.Connected;
 			
