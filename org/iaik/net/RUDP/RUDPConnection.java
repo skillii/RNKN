@@ -62,8 +62,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	
 	//NUL stuff
 	protected NULDaemon nulDaemon;
-	protected final int nullCycleValue = 3000000;
-	protected final int nullTimeoutValue = 15000000;
+	protected final int nullCycleValue = 10000;
+	protected final int nullTimeoutValue = 40000;
 
 	
 	private Log log;
@@ -375,7 +375,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		nextPackageExpected = 0;
 		lastPackageRcvd = 0;
 		//maxSegmentSize = 100;
-		receiveBufferLength = 64;
+		receiveBufferLength = 15;
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
 		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
@@ -544,8 +544,17 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				log.warn("received packet(" + srcIP + "," + packet.getSrc_port() + ", where remoteIP(" + remoteIP + ") or remotePort(" + remotePort + "doesn't match");
 				return;
 			}
-
-			nulDaemon.packetReceived();
+            
+			if(nulDaemon != null)
+			{
+			  nulDaemon.packetReceived();
+			}
+			else
+			{
+			  this.nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
+			  this.nulDaemon.start();
+			  this.nulDaemon.packetReceived();
+			}
 
 			
 
@@ -585,6 +594,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							byte[] payload = Arrays.copyOfRange(appWriteBuffer, 0, appWriteBufferUsed);
 							appWriteBufferUsed = 0;
 							
+							log.debug("Nagle Buffer Inhalt" + Integer.toString(appWriteBufferUsed));
+							
 							RUDP_DTAPacket dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
 							
 							addToSendBuffer(dataPacket);
@@ -609,7 +620,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			
 			else if(packet instanceof RUDP_NULPacket)
 			{
-				//TODO: reset the hartbeat timer
+				//TODO: WORKAROUND
+				callback.DataReceived();
 			}
 			
 			else if(packet instanceof RUDP_RSTPacket)
@@ -756,7 +768,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		else 
 		{
 			diff = ib1 - ib2;
-			if(nextPackageExpected == 0)
+			if((nextPackageExpected == 0))
 				diff--;
 		}
 				

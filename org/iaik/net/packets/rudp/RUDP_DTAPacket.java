@@ -27,8 +27,14 @@ public class RUDP_DTAPacket extends RUDPPacket {
 	  this.payload = new byte[payload.length];
 	  System.arraycopy(payload, 0, this.payload, 0, payload.length);
 	  
-	  this.packet_length = Short.parseShort(Integer.toString(11 + payload.length)); 
-	  
+	  try
+	  {
+	    this.packet_length = Short.parseShort(Integer.toString(11 + payload.length)); 
+	  }
+	  catch(NumberFormatException e)
+	  {
+	    System.out.println("NumberFormatException!!");	  
+	  }
 	}
 	
 	private RUDP_DTAPacket(byte packet[]) throws PacketParsingException

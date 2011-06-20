@@ -31,6 +31,7 @@ public class FTPClientWorker extends Thread {
 
 	Condition transferCondition;
 	Lock transferConditionLock;
+	boolean reduceDataThroughput;
 
 	RUDPConnection conn;
 	
@@ -52,6 +53,8 @@ public class FTPClientWorker extends Thread {
 	  this.transferConditionLock = transferConditionLock;
 	  
 	  this.log = LogFactory.getLog(this.getClass());
+	  
+	  this.reduceDataThroughput = true;
 	}
 	
 	public void setConnection(RUDPConnection conn)
@@ -69,7 +72,7 @@ public class FTPClientWorker extends Thread {
             System.out.println("Waiting");
 			this.threadCondition.await();
 			this.threadConditionLock.unlock();
-			//Thread.sleep((int)Math.random() * 5);
+			Thread.sleep((int)(Math.random() * 4000));
 			receivedData();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -237,7 +240,12 @@ public class FTPClientWorker extends Thread {
 			  Furthermore this means the package doesn't have an identifier */
 			log.info("Reading data, " + Integer.toString(this.conn.dataToRead()) + " bytes available");
 			  
-			byte[] tempData = conn.getReceivedData(this.bytesToRead);
+			byte[] tempData;
+			
+			if(this.reduceDataThroughput)
+			  tempData = conn.getReceivedData(8096);
+			else
+			  tempData = conn.getReceivedData(this.bytesToRead);
 			
 			System.arraycopy(tempData, 0, this.dataRead, this.countRead, tempData.length);
 			
