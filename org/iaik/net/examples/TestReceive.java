@@ -324,7 +324,7 @@ public class TestReceive {
 									byte[] data3 = {18,19,20,21,22,23};
 									//String test = "blapenismegacock";
 
-									byte sqz_nr = 4;
+									byte sqz_nr = 125;
 									byte ack_nr = 0;
 									
 									//System.out.println("Vorher: " + new String(data));
@@ -333,15 +333,15 @@ public class TestReceive {
 									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
 									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);
 									
-									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data2,(byte)6, ack_nr);
+									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data2,(byte)127, ack_nr);
 									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
 									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);
 								
-									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data1,(byte)5, ack_nr);
+									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data1,(byte)126, ack_nr);
 									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
 									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);
 									
-									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data3,(byte)7, ack_nr);
+									rudpPack = new RUDP_DTAPacket((short)25000,(short)connection.getPort(), data3,(byte)128, ack_nr);
 									rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, destinationAddress, rudpPack.getPacket());
 									TransportLayerFactory.getInstance().sendPacket(rudpPackIP);
 								}

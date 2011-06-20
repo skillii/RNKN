@@ -374,7 +374,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
 		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
-		lastUsedSequenceNr = 0;
+		lastUsedSequenceNr = nextSeqExpected -1;
 
 		// sender init
 		lastPackageAcked = lastPackageSent = lastPackageWritten = lastSequenceNrSent;
@@ -592,9 +592,9 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 						sendACK(packet,advertisedWindow);
 						return;						
 					}
-					if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
+					/*if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
 						receivePacketBuffer[0] = dtaPacket;
-					else
+					else*/
 						receivePacketBuffer[diff] = dtaPacket;
 					advertisedWindow = calcAdvWinSize();
 					sendACK(packet,advertisedWindow);
