@@ -573,10 +573,20 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
 				int diff;
 				int advertisedWindow;
+				log.debug("Packed Buffering: calc diff");
+				
 				
 				if(receivePacketBuffer[0] == null)
 				{
-					log.debug("Packed Buffering: store first Packed");
+					diff = sequenceDiff(dtaPacket.getSeq_num(), nextExpectedSequenznr-1);
+					
+					if(diff < 0)
+					{
+						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
+						advertisedWindow = calcAdvWinSize();
+						sendACK(packet,advertisedWindow);
+						return;						
+					}
 					receivePacketBuffer[0] = dtaPacket;
 					advertisedWindow = calcAdvWinSize();
 					sendACK(packet,advertisedWindow);
@@ -586,8 +596,10 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				else
 				{
 					log.debug("Packed Buffering: calc diff");
-					// neue pos sequenzdiff
 					diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
+					
+					// neue pos sequenzdiff
+					
 
 					// diff<0 send ack throw away
 					if(diff < 0)
