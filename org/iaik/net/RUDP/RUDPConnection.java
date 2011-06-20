@@ -36,6 +36,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected byte[] appReadBuffer = new byte[maxSegmentSize]; 
 	protected int appReadBLoad;
 	protected RUDP_DTAPacket[] receivePacketBuffer;
+	protected int lastUsedSequenceNr;
 	private boolean bStopThread = false;
 	
 	
@@ -298,6 +299,8 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			appReadBLoad = (receivePacketBuffer[i].getPayload().length - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
 			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, ( receivePacketBuffer[i].getPayload().length-appReadBLoad), appReadBLoad );
 			
+			lastUsedSequenceNr = NetUtils.toInt(receivePacketBuffer[nextPackageExpected-1].getSeq_num());
+			
 			i++;
 			// shift the packages through the receivePacketBuffer
 			int start, shifty;
@@ -371,6 +374,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		appReadBuffer = new byte[maxSegmentSize]; 
 		appReadBLoad = 0;
 		receivePacketBuffer = new RUDP_DTAPacket[receiveBufferLength];
+		lastUsedSequenceNr = nextSeqExpected -1;
 
 		// sender init
 		lastPackageAcked = lastPackageSent = lastPackageWritten = lastSequenceNrSent;
@@ -590,11 +594,24 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				RUDP_DTAPacket dtaPacket = (RUDP_DTAPacket)packet;
 				int diff;
 				int advertisedWindow;
+				log.debug("Packed Buffering: calc diff");
+				
 				
 				if(receivePacketBuffer[0] == null)
 				{
-					log.debug("Packed Buffering: store first Packed");
-					receivePacketBuffer[0] = dtaPacket;
+					diff = sequenceDiff(dtaPacket.getSeq_num(), (byte)(lastUsedSequenceNr));
+					
+					if(diff < 0)
+					{
+						log.debug("Packed Buffering: Got Old Packed, throw away but send ACK");
+						advertisedWindow = calcAdvWinSize();
+						sendACK(packet,advertisedWindow);
+						return;						
+					}
+					/*if((nextPackageExpected == 0) && (lastPackageRcvd == 0))
+						receivePacketBuffer[0] = dtaPacket;
+					else*/
+						receivePacketBuffer[diff] = dtaPacket;
 					advertisedWindow = calcAdvWinSize();
 					sendACK(packet,advertisedWindow);
 					updateRecvValues();
@@ -603,8 +620,10 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				else
 				{
 					log.debug("Packed Buffering: calc diff");
-					// neue pos sequenzdiff
 					diff = sequenceDiff(dtaPacket.getSeq_num(), receivePacketBuffer[0].getSeq_num());
+					
+					// neue pos sequenzdiff
+					
 
 					// diff<0 send ack throw away
 					if(diff < 0)
@@ -686,14 +705,17 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		int ib2 = NetUtils.toInt(b2);
 		int diff;
 		
-		if((ib1-ib2) < -63)
+		if((ib1-ib2) < -(seqNrsAvailable/2))
 		{
-			diff = 128 - ib2 + ib1;
-			
+			diff = seqNrsAvailable - ib2 + ib1;
+			if(diff >= seqNrsAvailable)
+				diff = diff-seqNrsAvailable;
 		}
 		else 
 		{
 			diff = ib1 - ib2;
+			if(nextPackageExpected == 0)
+				diff--;
 		}
 		
 		return diff;
