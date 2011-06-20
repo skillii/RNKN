@@ -643,8 +643,8 @@ public class IPPacket implements Packet {
 		int payloadLen;
 		
 		headerLen = (packet.getPayload()[0] & 0x0f)*4;
-		payloadLen = NetUtils.toInt((short)(packet.getPayload()[2]<<8 | packet.getPayload()[3])) - headerLen;
-		
+		//payloadLen = NetUtils.toInt((short)(packet.getPayload()[2]<<8 | packet.getPayload()[3])) - headerLen;
+		payloadLen = NetUtils.bytesToShort(packet.getPayload(), 2) - headerLen;
 		byte[] header = new byte[headerLen];
 		byte[] payload = new byte[payloadLen];
 		System.arraycopy(packet.getPayload(), 0, header, 0, headerLen);
@@ -737,6 +737,7 @@ public class IPPacket implements Packet {
 		pkg[versionOffset] = (byte)(version << 4);
 		pkg[ihlOffset] |= (byte)(20/4);
 		pkg[tosOffset] = tos;
+		short test = (short)(pkg.length + payload.length);
 		NetUtils.insertData(pkg, NetUtils.shortToBytes((short)(pkg.length + payload.length)), totalLenOffset);		
 		NetUtils.insertData(pkg, NetUtils.shortToBytes(identification), identificationOffset);
 		pkg[flagsOffset] = (byte)((flags << 5));

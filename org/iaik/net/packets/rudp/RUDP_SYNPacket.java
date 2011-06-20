@@ -128,27 +128,27 @@ public class RUDP_SYNPacket extends RUDPPacket {
 	  this.rst = false;
 	  this.nul = false;
 
-	  this.packet_length = packet[1];
-	  this.dest_port = NetUtils.bytesToShort(packet, 2);
-      this.src_port = NetUtils.bytesToShort(packet, 4);
+	  this.packet_length = NetUtils.bytesToShort(packet,1);
+	  this.dest_port = NetUtils.bytesToShort(packet, 3);
+      this.src_port = NetUtils.bytesToShort(packet, 5);
 	  
-      this.seq_num = packet[6];
-      this.ack_num = packet[7];
-      this.max_out_of_seq = packet[8];
-      this.max_outstanding_seg = packet[9];
+      this.seq_num = packet[7];
+      this.ack_num = packet[8];
+      this.max_out_of_seq = packet[9];
+      this.max_outstanding_seg = packet[10];
       
-      this.max_segment_size  = NetUtils.bytesToShort(packet,10);
-      this.retransmission_timeout = NetUtils.bytesToShort(packet, 12);
-      this.cumulative_ack_timeout = NetUtils.bytesToShort(packet, 14);
-      this.null_segment_timeout = NetUtils.bytesToShort(packet, 16);
-      this.null_receipt_timeout = NetUtils.bytesToShort(packet, 18);
-      this.max_retrans = packet[20];
-      this.max_cum_ack = packet[21];
+      this.max_segment_size  = NetUtils.bytesToShort(packet,11);
+      this.retransmission_timeout = NetUtils.bytesToShort(packet, 13);
+      this.cumulative_ack_timeout = NetUtils.bytesToShort(packet, 15);
+      this.null_segment_timeout = NetUtils.bytesToShort(packet, 17);
+      this.null_receipt_timeout = NetUtils.bytesToShort(packet, 19);
+      this.max_retrans = packet[21];
+      this.max_cum_ack = packet[22];
       
-      short checksum_should = NetUtils.bytesToShort(packet, 22);
+      short checksum_should = NetUtils.bytesToShort(packet, 23);
       
-      packet[22] = 0;
       packet[23] = 0;
+      packet[24] = 0;
       
       short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
       
@@ -192,7 +192,7 @@ public class RUDP_SYNPacket extends RUDPPacket {
 
 	  
 	  this.seq_num = seq_num;
-	  this.packet_length = Byte.parseByte(Integer.toString(24));
+	  this.packet_length = Short.parseShort(Integer.toString(25));
 	  
 	  this.dest_port = dest_port;
 	  this.src_port = src_port;
@@ -243,31 +243,31 @@ public class RUDP_SYNPacket extends RUDPPacket {
 		pkg[0] = (byte)header_identifier;
 		//NetUtils.insertData(pkg, NetUtils.intToBytes(header_identifier), 0);
 
-        pkg[1] = this.packet_length;
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
-        pkg[6] = this.seq_num;
-        pkg[7] = this.ack_num;
-        pkg[8] = this.max_out_of_seq;
-        pkg[9] = this.max_outstanding_seg;
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.max_segment_size), 10);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.retransmission_timeout), 12);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.cumulative_ack_timeout), 14);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.null_segment_timeout), 16);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.null_receipt_timeout), 18);
-        pkg[20] = this.max_retrans;
-        pkg[21] = this.max_cum_ack;
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.packet_length), 1);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 3);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 5);
+        pkg[7] = this.seq_num;
+        pkg[8] = this.ack_num;
+        pkg[9] = this.max_out_of_seq;
+        pkg[10] = this.max_outstanding_seg;
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.max_segment_size), 11);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.retransmission_timeout), 13);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.cumulative_ack_timeout), 15);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.null_segment_timeout), 17);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.null_receipt_timeout), 19);
+        pkg[21] = this.max_retrans;
+        pkg[22] = this.max_cum_ack;
         
         //Set Checksum 0 for now
-        pkg[22] = 0;
         pkg[23] = 0;
+        pkg[24] = 0;
 
         
         short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
         
 		this.checksum = calc_checksum;
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 22);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 23);
 		
 		return pkg;
 	}

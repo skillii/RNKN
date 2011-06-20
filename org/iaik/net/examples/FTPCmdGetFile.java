@@ -17,7 +17,9 @@ public class FTPCmdGetFile extends FTPCommand {
 	  this.pack_size = arrayToString.length;
 		
 	  pkg[0] = this.identifier;
-	  NetUtils.insertData(pkg, NetUtils.intToBytes(this.pack_size), 1);
+	  
+	  byte[] size_in_bytes = NetUtils.intToBytes(this.pack_size);
+	  System.arraycopy(size_in_bytes, 0, pkg, 1, size_in_bytes.length);
 	  System.arraycopy(arrayToString, 0, pkg, 5, arrayToString.length);
 		
 	  return pkg;

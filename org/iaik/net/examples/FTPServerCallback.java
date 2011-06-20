@@ -139,7 +139,7 @@ public class FTPServerCallback implements RUDPServerCallback{
 		    try 
 		    {
 		      dataPacket = new FTPCmdFileData(file);
-			    this.conn.sendData(dataPacket.getCommand());
+			  this.conn.sendData(dataPacket.getCommand());
 			} 
 		    catch (FileNotFoundException e) 
 		    {
@@ -182,19 +182,10 @@ public class FTPServerCallback implements RUDPServerCallback{
 	    {
 	      log.info("Get File Command received"); 	
 	      byte[] data = this.conn.getReceivedData(size);
-	      
-	      try 
-	      {
-			FTPCmdGetFile cmd = (FTPCmdGetFile)FTPCommand.parseFTPCommand(data);
+	     
+		  String name = new String(data);
 			
-			String name = cmd.getFile();
-			
-			checkAndSendFile(name);
-		  } 
-	      catch (PacketParsingException e)
-	      {
-		    System.out.println("Couldn't parse file request packet\n");
-	      }
+		  checkAndSendFile(name);
 		}
 	    else
 	    {

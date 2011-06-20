@@ -2,267 +2,83 @@ package org.iaik.net.examples;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.iaik.net.examples.FTPClientWorker.ClientCallbackState;
 
 import org.iaik.net.RUDP.ConnectionCloseReason;
 import org.iaik.net.RUDP.RUDPClientConnection;
 import org.iaik.net.exceptions.PacketParsingException;
 import org.iaik.net.interfaces.RUDPClientCallback;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.iaik.net.utils.NetUtils;
 
 public class FTPClientCallback implements RUDPClientCallback {
 	
-	public enum ClientCallbackState{
-		AwaitingFile,
-		AwaitingFileList,
-		AwaitingErrorMessage,
-		Error,
-		FileListComplete,
-		FileComplete,
-		TransferingFile,
-		TransferingFileList,
-		PuttingFile}
-	
-	ClientCallbackState cbstate;
+
 	RUDPClientConnection conn;
+	FTPClientWorker worker;
 	Condition transferCondition;
 	Lock transferConditionLock;
-	String errorMessage;
+	Condition threadCondition;
+	Lock threadConditionLock;
 	ConnectionCloseReason discon_reason;
-	
-	byte[] dataRead;
-	
-	int bytesToRead;
-	int countRead;
 
-	
 	public FTPClientCallback(Condition transferCondition, Lock transferConditionLock)
 	{
 	  this.transferCondition = transferCondition;
 	  this.transferConditionLock = transferConditionLock;
+      this.threadConditionLock = new ReentrantLock();
+	  this.threadCondition = transferConditionLock.newCondition();
+	  this.worker = new FTPClientWorker(this.threadCondition,this.threadConditionLock,
+			                            this.transferCondition,this.transferConditionLock);
+	  
+	  worker.start();
 	}
 	
 	public void setConnection(RUDPClientConnection conn)
 	{
 	  this.conn = conn;	
+	  this.worker.setConnection(conn);
 	}
 	
 	
-	private void receivedPacketWhileUploading()
-	{
-		byte[] tempData;
-		int packet_size;
-	    
-		
-		//Es sollte nur ein Error Paket kommen..
-		
-        this.cbstate = ClientCallbackState.Error;
-	    
-	    tempData = conn.getReceivedData(5);
-	    packet_size = NetUtils.bytesToInt(tempData, 1);
-	    byte identifier = tempData[0];
-	    
-        this.receivedErrorMessage(packet_size, identifier);
-	}
 	
-	private void awaitingFileTransfer()
-	{
-		byte[] tempData = conn.getReceivedData(5);
-		  
-	    byte identifier = tempData[0];
-	    int size = NetUtils.bytesToInt(tempData, 1);
-	    
-	    if((identifier & FTPCommand.FILE_DATA_IDENTIFIER) != 0)
-	    {
-	      //Find out how big the file is
-		  //(We assume this information arrived in the first RUDP Packet as well)
-		  this.bytesToRead = size;
-		  this.countRead = 0;
-		  
-		  tempData = this.conn.getReceivedData(this.bytesToRead);
-		  
-		  //Now read the rest of the data that came with the first package
-		  this.dataRead = new byte[this.bytesToRead];
-		 
-		  System.arraycopy(tempData, 0, this.dataRead, 0, tempData.length);
-		 
-		  //Reduce counter of bytes to read
-		  this.bytesToRead -= tempData.length;
-		  this.countRead += tempData.length;
-		 
-		  if(this.bytesToRead > 0)
-		    this.cbstate = ClientCallbackState.TransferingFile;
-		  else
-		  {
-			this.cbstate = ClientCallbackState.FileComplete;
-			
-		    transferConditionLock.lock();
-			transferCondition.signal();
-			transferConditionLock.unlock();
-		  }
-	    }
-	    else
-	    {
-	      receivedErrorMessage(size,identifier);	
-	    }
-	}
-	
-	private void awaitingFileList()
-	{
-	  byte[] tempData = conn.getReceivedData(5);
-		   
-	  byte identifier = tempData[0];
-	  int size = NetUtils.bytesToInt(tempData, 1); 
-	     
-	  if((identifier & FTPCommand.LIST_FILE_IDENTIFIER) != 0)
-	  {
-
-	    this.bytesToRead = size;
-	    this.countRead = 0;
-		 
-		tempData = this.conn.getReceivedData(this.bytesToRead);
-		  
-		//Now read the rest of the data that came with the first package
-		this.dataRead = new byte[this.bytesToRead];
-		 
-		System.arraycopy(tempData, 0, this.dataRead, 0, tempData.length);
-		 
-		//Reduce counter of bytes to read
-		this.bytesToRead -= tempData.length;
-		this.countRead += tempData.length;
-		 
-		if(this.bytesToRead > 0)
-		    this.cbstate = ClientCallbackState.TransferingFileList;
-		else
-		{
-	      this.cbstate = ClientCallbackState.FileListComplete;
-			
-		  transferConditionLock.lock();
-		  transferCondition.signal();
-		  transferConditionLock.unlock();
-		}
-	  }
-	  
-	  else
-	  {
-	    receivedErrorMessage(size, identifier);	  
-	  }
-	  
-	}
-		
-	private void receivedErrorMessage(int size, byte identifier)
-	{
-		if((identifier & FTPCommand.ERROR_IDENTIFIER) != 0)
-	    {
-	      if(this.conn.dataToRead() >= size)
-	      {
-            byte[] tempData = conn.getReceivedData(size);	
-	        this.cbstate = ClientCallbackState.Error;
-            
-            this.errorMessage = tempData.toString();
-			      
-			transferConditionLock.lock();
-		    transferCondition.signal();
-			transferConditionLock.unlock();
-		  }
-	      else
-	      {
-	        this.cbstate = ClientCallbackState.AwaitingErrorMessage;
-	        this.bytesToRead = size;
-	        this.countRead = 0;
-	        this.dataRead = new byte[this.bytesToRead];
-	      }
-	    }
-		else
-		{
-		  this.errorMessage = "Received unexpected or unknown package!";	
-		  transferConditionLock.lock();
-		  transferCondition.signal();
-		  transferConditionLock.unlock();
-		}
-	}
 	
 	
 	@Override
 	public void DataReceived() {
-
-		
-		if(this.conn.dataToRead() > 5)
-		{
-			
-		  if(this.cbstate == ClientCallbackState.PuttingFile)
-		  {
-            this.receivedPacketWhileUploading();
-		  }
-		
-		  if(this.cbstate == ClientCallbackState.AwaitingFile)
-		  {
-		    this.awaitingFileTransfer(); 
-		  }
-
-		  
-		  if(this.cbstate == ClientCallbackState.AwaitingFileList)
-		  {  
-		    this.awaitingFileList();   
-		  }
-		  
-		  if(this.cbstate == ClientCallbackState.TransferingFile || 
-		     this.cbstate == ClientCallbackState.TransferingFileList ||
-		     this.cbstate == ClientCallbackState.AwaitingErrorMessage)
-		  {
-			/*We're transfering a file, the whole package consist of file data
-			  Furthermore this means the package doesn't have an identifier */
-			
-			byte[] tempData = conn.getReceivedData(this.bytesToRead);
-			
-			System.arraycopy(tempData, 0, this.dataRead, this.countRead, tempData.length);
-			
-			this.bytesToRead -= tempData.length;
-			this.countRead += tempData.length;
-			
-			if(this.bytesToRead == 0)
-			{
-			  //If we're done tell the Client!
-			  if(this.cbstate == ClientCallbackState.TransferingFile)	
-			    this.cbstate = ClientCallbackState.FileComplete;
-			  else if(this.cbstate == ClientCallbackState.TransferingFileList)
-				this.cbstate = ClientCallbackState.FileListComplete;
-			  else if(this.cbstate == ClientCallbackState.AwaitingErrorMessage)
-			  {
-				this.cbstate = ClientCallbackState.Error;
-				this.errorMessage = this.dataRead.toString();
-			  }
-			  
-			  transferConditionLock.lock();
-			  transferCondition.signal();
-			  transferConditionLock.unlock();
-			}
-		  }		  
-	   }
+		  //this.threadConditionLock.lock();
+          this.threadCondition.signal();
+          //this.threadConditionLock.unlock();
 	}	
 	
 	public void setCallbackState(ClientCallbackState cbstate)
 	{
-	  this.cbstate = cbstate;
+	  this.worker.setCallbackState(cbstate);
 	}
 	
 	public ClientCallbackState getCallbackState()
 	{
-	  return this.cbstate;	
+	  return this.worker.getCallbackState();	
 	}
 	
 	public String getErrorMessage()
 	{
-	  return this.errorMessage;	
+	  return this.worker.getErrorMessage();	
 	}
 	
 	public byte[] getReceivedData()
 	{
-	  return this.dataRead;	
+	  return this.worker.getReceivedData();	
 	}
 
 	@Override
 	public void ConnectionClosed(ConnectionCloseReason reason) 
 	{
 	  this.discon_reason = reason;
+	  this.worker.setCallbackState(ClientCallbackState.Disconnected);
+	  this.transferCondition.signal();
 	}
 }

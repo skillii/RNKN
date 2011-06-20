@@ -42,7 +42,7 @@ public class FTPCmdFileData extends FTPCommand {
 	  this.log = LogFactory.getLog(this.getClass());
 	  this.data = data;
 	  this.fileSize = data.length;
-	  this.identifier = 0x08;
+	  this.identifier = FTPCommand.FILE_DATA_IDENTIFIER;
 	}
 	
 	public FTPCmdFileData(File file) throws IOException, FileNotFoundException
@@ -50,8 +50,11 @@ public class FTPCmdFileData extends FTPCommand {
         InputStream is = new FileInputStream(file);
         
         long length = file.length();
+        this.fileSize = (int)length;
+        this.identifier = FTPCommand.FILE_DATA_IDENTIFIER;
 
-
+        this.data = new byte[(int)length];
+            
         int offset = 0;
         int numRead = 0;
         while (offset < data.length
@@ -95,13 +98,10 @@ public class FTPCmdFileData extends FTPCommand {
 	  this.identifier = packet[0];
 	  
 	  this.data = new byte[packet.length - 5];
-	  
-	  byte[] intbyte = new byte[4];
-	 
-	  System.arraycopy(packet, 1, intbyte, 0, 4);
+
 	  System.arraycopy(packet, 5, this.data, 0, packet.length - 5);
 
-	 
+	  this.fileSize = data.length;
     }
 	
 	

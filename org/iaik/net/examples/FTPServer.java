@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.iaik.net.Network;
 import org.iaik.net.RUDP.RUDPServerConnection;
-import org.iaik.net.examples.FTPClientCallback.ClientCallbackState;
+import org.iaik.net.examples.FTPClientWorker.ClientCallbackState;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.RUDPException;
 import org.iaik.net.interfaces.RUDPServerCallback;

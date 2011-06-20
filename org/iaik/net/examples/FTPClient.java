@@ -20,7 +20,7 @@ import org.iaik.net.Network;
 import org.iaik.net.RUDP.RUDPClientConnection;
 import org.iaik.net.RUDP.RUDPServerConnection;
 import org.iaik.net.RUDP.RUDPConnection;
-import org.iaik.net.examples.FTPClientCallback.ClientCallbackState;
+import org.iaik.net.examples.FTPClientWorker.ClientCallbackState;
 import org.iaik.net.exceptions.NetworkException;
 import org.iaik.net.exceptions.RUDPException;
 import org.iaik.net.interfaces.RUDPClientCallback;
@@ -228,6 +228,7 @@ public class FTPClient {
 							  {
 							    System.out.println("IP Address not valid");
 							  }
+							  
 	                        }
 						}
 						else if(command.equals("exit") || command.equals("quit"))

@@ -50,7 +50,7 @@ public abstract class RUDPPacket implements Packet {
 		this.nul = nul;
 	}
 
-	public byte getPacket_length() {
+	public short getPacket_length() {
 		return packet_length;
 	}
 
@@ -90,7 +90,7 @@ public abstract class RUDPPacket implements Packet {
 	boolean nul;
 
     //bytes - 8 bit
- 	byte packet_length;
+ 	short packet_length;
 	byte seq_num;
 	byte ack_num;
 	

@@ -31,39 +31,39 @@ public class RUDP_RSTPacket extends RUDPPacket {
 			header_identifier = header_identifier + 0x40;
 		
 		pkg[0] = (byte) header_identifier;
-        pkg[1] = this.packet_length;
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 2);
-        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 4);
-        pkg[6] = this.seq_num;
-        pkg[7] = this.ack_num;
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.packet_length), 1);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.dest_port), 3);
+        NetUtils.insertData(pkg, NetUtils.shortToBytes(this.src_port), 5);
+        pkg[7] = this.seq_num;
+        pkg[8] = this.ack_num;
     
         //Set Checksum 0 for now
-        pkg[8] = 0;
         pkg[9] = 0;
+        pkg[10] = 0;
  
           
         short calc_checksum = NetUtils.calcIPChecksum(pkg, 0, pkg.length);
         
 		this.checksum = calc_checksum;
 		
-		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 8);
+		NetUtils.insertData(pkg, NetUtils.shortToBytes(this.checksum), 9);
 		
 		return pkg;	
 	}
 	
 	private RUDP_RSTPacket(byte[] packet) throws PacketParsingException
 	{
-      this.packet_length = packet[1];
-      this.dest_port = NetUtils.bytesToShort(packet, 2);
-	  this.src_port = NetUtils.bytesToShort(packet, 4);	
+      this.packet_length = NetUtils.bytesToShort(packet,1);
+      this.dest_port = NetUtils.bytesToShort(packet, 3);
+	  this.src_port = NetUtils.bytesToShort(packet, 5);	
 		  
-	  this.seq_num = packet[6];
-	  this.ack_num = packet[7];
+	  this.seq_num = packet[7];
+	  this.ack_num = packet[8];
 	  
-	  short checksum_should = NetUtils.bytesToShort(packet, 8);   
+	  short checksum_should = NetUtils.bytesToShort(packet, 9);   
 	  
-	  packet[8] = 0;
 	  packet[9] = 0;
+	  packet[10] = 0;
       
       short calc_checksum = NetUtils.calcIPChecksum(packet, 0, packet.length);
       
@@ -88,7 +88,7 @@ public class RUDP_RSTPacket extends RUDPPacket {
   	  this.eak = false;
   	  
   	  
-  	  this.packet_length = 10;
+  	  this.packet_length = 11;
 	}
 	
 	
