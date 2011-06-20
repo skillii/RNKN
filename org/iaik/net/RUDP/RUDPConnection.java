@@ -659,7 +659,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 				}
 				log.debug("callback for DATARECEIVED");
 				callback.DataReceived();
-				
+				log.debug("out of DATARECEIVED");
 				
 			}
 
@@ -733,6 +733,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		RUDPPacket rudpPack;
 		IPPacket rudpPackIP;
 		rudpPack = new RUDP_ACKPacket((short)remotePort, (short)port, (byte)0, (byte)(packet.getSeq_num()), (byte)adveWinSize);
+		this.log.debug("Port " + Integer.toString(remotePort) + "Ziel IP " + remoteIP);
 		
 		rudpPackIP = IPPacket.createDefaultIPPacket(IPPacket.RUDP_PROTOCOL, (short)0, Network.ip, remoteIP, rudpPack.getPacket());
 		transportLayer.sendPacket(rudpPackIP);

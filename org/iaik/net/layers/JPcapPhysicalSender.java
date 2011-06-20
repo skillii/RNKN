@@ -21,6 +21,7 @@ public class JPcapPhysicalSender implements PhysicalSender {
 
 	public void send(Packet p) {
 		// obtain a packet from the send buffer;
+		System.out.println("PYHSICAL SEND");
 		jpcap.packet.Packet packet = convertPacket(p);
 		sender.sendPacket(packet);
 	}

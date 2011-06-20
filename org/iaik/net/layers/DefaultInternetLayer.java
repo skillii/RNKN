@@ -161,7 +161,10 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 							throw new RuntimeException(ne.getMessage());
 						}
 					} else
+					  {
 						processIP(packet);
+					    log.debug("out of process ip");
+					  }
 
 				} else {
 					/*
@@ -293,6 +296,8 @@ public class DefaultInternetLayer extends Thread implements InternetLayer {
 					 * Creation of the Ethernet packet with the resolved
 					 * destination MAC address.
 					 */
+					log.debug("Packet really sent");
+					log.debug("Destination MAC: " + destinationMACAddress);
 					sendBuffer.add(EthernetPacket.createEthernetPacket(EthernetPacket.ETHERTYPE_IP, Network.mac, destinationMACAddress,
 							packet.getPacket()));
 				}
