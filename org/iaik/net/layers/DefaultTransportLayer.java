@@ -55,8 +55,8 @@ public class DefaultTransportLayer implements TransportLayer {
 			
 			boolean found = false;
 			
-			synchronized(connections)
-			{
+			//synchronized(connections)
+			//{
 				int i;
 				for(i = 0; i < connections.size(); i++)
 				{
@@ -68,7 +68,7 @@ public class DefaultTransportLayer implements TransportLayer {
 						break;
 					}
 				}
-			}
+			//}
 			
 			if(!found)
 				log.warn("found no connection for that incoming packet, port: " + rudpPacket.getDest_port());

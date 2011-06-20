@@ -28,6 +28,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 	protected TransportLayer transportLayer;
 	
 	//---Receive values---
+	protected byte nextSeqExpected;
 	protected int nextPackageExpected;
 	protected int lastPackageRcvd;
 	protected int maxSegmentSize;
@@ -385,7 +386,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 		advWinFree = advLock.newCondition();
 		
 		Timer sentPacketTimeoutTimer = new Timer();
-		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), ackTimeoutCheckInterval);
+		sentPacketTimeoutTimer.schedule(new SentPackageTimeoutChecker(), 1000, ackTimeoutCheckInterval);
 
 		// NUL packet init
 		nulDaemon = new NULDaemon(remoteIP, remotePort, port, nullCycleValue, nullTimeoutValue, this);
@@ -536,6 +537,22 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 							sendPacketBufferElements--;
 							
 							sendBufferFullSem.release();
+						}
+					}
+					
+					// check if theres any more data in flight, if not send nagle buffer
+					if(unackedPackets <= 0)
+					{
+						if(appWriteBufferUsed > 0)  // theres data to send in the nagle buffer
+						{
+							log.debug("receiver: got last outstanding ack and theres something in nagle buffer, sending");
+							
+							byte[] payload = Arrays.copyOfRange(appWriteBuffer, 0, appWriteBufferUsed);
+							appWriteBufferUsed = 0;
+							
+							RUDP_DTAPacket dataPacket = new RUDP_DTAPacket((short)remotePort, (short)port, payload, (byte)0, (byte)0);
+							
+							addToSendBuffer(dataPacket);
 						}
 					}
 				}

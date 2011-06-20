@@ -645,6 +645,7 @@ public class IPPacket implements Packet {
 		headerLen = (packet.getPayload()[0] & 0x0f)*4;
 		//payloadLen = NetUtils.toInt((short)(packet.getPayload()[2]<<8 | packet.getPayload()[3])) - headerLen;
 		payloadLen = NetUtils.bytesToShort(packet.getPayload(), 2) - headerLen;
+
 		byte[] header = new byte[headerLen];
 		byte[] payload = new byte[payloadLen];
 		System.arraycopy(packet.getPayload(), 0, header, 0, headerLen);

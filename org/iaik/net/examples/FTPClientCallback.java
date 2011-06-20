@@ -30,7 +30,7 @@ public class FTPClientCallback implements RUDPClientCallback {
 	  this.transferCondition = transferCondition;
 	  this.transferConditionLock = transferConditionLock;
       this.threadConditionLock = new ReentrantLock();
-	  this.threadCondition = transferConditionLock.newCondition();
+	  this.threadCondition = threadConditionLock.newCondition();
 	  this.worker = new FTPClientWorker(this.threadCondition,this.threadConditionLock,
 			                            this.transferCondition,this.transferConditionLock);
 	  
@@ -49,9 +49,10 @@ public class FTPClientCallback implements RUDPClientCallback {
 	
 	@Override
 	public void DataReceived() {
-		  //this.threadConditionLock.lock();
-          this.threadCondition.signal();
-          //this.threadConditionLock.unlock();
+		  System.out.println("Signaling");
+          this.threadConditionLock.lock();
+		  this.threadCondition.signal();
+		  this.threadConditionLock.unlock();
 	}	
 	
 	public void setCallbackState(ClientCallbackState cbstate)
@@ -79,6 +80,8 @@ public class FTPClientCallback implements RUDPClientCallback {
 	{
 	  this.discon_reason = reason;
 	  this.worker.setCallbackState(ClientCallbackState.Disconnected);
+	  this.transferConditionLock.lock();
 	  this.transferCondition.signal();
+	  this.transferConditionLock.unlock();
 	}
 }
