@@ -295,7 +295,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 			
 			returnBuffer = NetUtils.insertData(returnBuffer, receivePacketBuffer[i].getPayload(), offset, (returnBufferLength-offset));		// Load data from the package which must be splitted
 			appReadBLoad = (receivePacketBuffer[i].getPayload().length - (returnBufferLength-offset));						// Load rest of package to appReadBuffer
-			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, (returnBufferLength+offset), appReadBLoad );
+			appReadBuffer = NetUtils.insertData(new byte[maxSegmentSize], receivePacketBuffer[i].getPayload(), 0, ( receivePacketBuffer[i].getPayload().length-appReadBLoad), appReadBLoad );
 			
 			i++;
 			// shift the packages through the receivePacketBuffer
@@ -616,7 +616,7 @@ public abstract class RUDPConnection implements Runnable, NULDaemonCallback {
 						if(oldNPE != nextPackageExpected)		// nextExpectedPacket changed -> dataReceived aufrufen & ACK senden
 						{
 							advertisedWindow = calcAdvWinSize();
-							sendACK(receivePacketBuffer[nextPackageExpected],advertisedWindow);
+							sendACK(receivePacketBuffer[nextPackageExpected-1],advertisedWindow);
 						}
 					}				
 
